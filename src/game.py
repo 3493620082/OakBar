@@ -85,6 +85,7 @@ class GameFuncs:
                 limit[name] -= num
                 getGameData().kucun[name] += num
                 getGameData().jinbi -= total_price
+                getGameData().today["收入"] -= total_price
                 input(f"\n{FIVE_SPACE}{name}x{num}购买成功!")
             else:
                 input(f"\n{FIVE_SPACE}余额不足!")
@@ -96,6 +97,7 @@ class GameFuncs:
         if getGameData().jinbi >= total_price:
             getGameData().jinbi -= total_price
             getGameData().kucun[name] += num
+            getGameData().today["收入"] -= total_price
             input(f"\n{FIVE_SPACE}{name}x{num}购买成功!")
         else:
             input(f"\n{FIVE_SPACE}余额不足!")
@@ -199,10 +201,61 @@ class GameFuncs:
         结束今日
         :return: 无
         """
-        # 1、天数+1
+        # 1、判断是否需要还债
+        if getGameData().zhaiwu != 0:
+            # 本天是不是月末
+            if self.f_isLastDayOfMonth(getGameData().tianshu):
+                self.f_clearScreen()
+                self.f_printTitle("奥克的酒馆")
+                print("\n\n\n")
+                if getGameData().jinbi >= 10:
+                    getGameData().jinbi -= 10
+                    getGameData().zhaiwu -= 10
+                    getGameData().zhangben["债务"] -= 10
+                    getGameData().today["收入"] -= 10
+                    self.f_printCenter(f"今天是月末，自动还债10金币，剩余金币{getGameData().jinbi}")
+                else:
+                    getGameData().naijiu -= 20
+                    getGameData().today["耐久"] -= 20
+                    self.f_printCenter(f"今天是月末，你的钱不足以还款，酒馆被打砸一通，耐久-20")
+                print("\n\n\n")
+                self.f_printTitle()
+                input(f"{FIVE_SPACE}按下回车继续...")
+        # 2、天数+1
         getGameData().tianshu += 1
         # 1、保存游戏数据
         getGameData().save()
+
+    def f_isLastDayOfMonth(self, day: int) -> bool:
+            """
+            [豆包AI生成]
+            判断给定天数是否为当月最后一天（按平年规则，不考虑闰年）
+            规则：一三五七八十腊（1、3、5、7、8、10、12月）31天，
+                  四六九冬（4、6、9、11月）30天，2月28天
+            支持天数大于365天（自动循环计算对应年份的天数）
+            :param day: 天数
+            :return: True或False
+            """
+            # 平年各月天数（索引0占位，对应1-12月）
+            month_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            # 处理天数大于365的情况（循环计算）
+            total_days_in_year = 365
+            normalized_day = (day - 1) % total_days_in_year + 1  # 确保结果在1-365之间
+            # 计算当前天数对应的月份
+            current_sum = 0
+            target_month = 0
+            for month in range(1, 13):
+                current_sum += month_days[month]
+                if normalized_day <= current_sum:
+                    target_month = month
+                    break
+            # 判断是否为当前月份的最后一天
+            last_day_of_month = month_days[target_month]
+            # 计算当前月份的第一天（总天数累加值 - 当月天数 + 1）
+            first_day_of_month = current_sum - last_day_of_month + 1
+            # 计算当前天数在当月的日期
+            day_in_month = normalized_day - first_day_of_month + 1
+            return day_in_month == last_day_of_month
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
@@ -376,20 +429,27 @@ class GamePage(GameFuncs):
                     self.page_fixBar()
                 elif choice == "5":  # 账本
                     self.page_ledger()
-                # 结束今日->营业结果->随机事件->季节结算
+                # 结束今日->营业结果->随机事件
                 # 酿酒、采购、营业、修缮和结束今日 这5个选项都会触发结算函数
                 if choice in ["1","2","3","4","6"]:
+                    # 今日已完成界面
+                    self.page_wancheng()
                     # 结算数据
                     self.f_finishToday()
                     # 显示营业结果
                     self.page_todayResult()
-                    # TODO:随机事件
-
-                    # TODO:季节结算
+                    # 随机事件
+                    self.page_randomEvent()
+                    # 今日结束语界面
+                    self.page_endToday()
 
     # 酿酒工坊界面
     def page_brew(self):
         gameData = getGameData()
+        # 声望-1
+        gameData.shengwang -= 1
+        # 今日声望-1
+        gameData.today["声望"] -= 1
         while True:
             self.f_clearScreen()
             self.f_printTitle("奥克的酿酒工坊")
@@ -414,53 +474,68 @@ class GamePage(GameFuncs):
                 break
             elif choice in ["1","2","3"]:
                 success = self.f_chance(gameData.niangjiu)
-                # 判断材料是否够消耗
+                # 材料
                 kucun = gameData.kucun
-                if choice == "1" and kucun["麦芽"] >= 3:
-                    gameData.kucun["麦芽"] -= 3
-                    if success:
-                        gameData.kucun["麦酒"] += 1
-                        print(Fore.GREEN)  # 空行
-                        self.f_printFS("酿酒成功！消耗 3 麦芽，麦酒 + 1 桶")
-                        print(Fore.YELLOW)
-                        input(f"{FIVE_SPACE}回车继续...")
+                if choice == "1":
+                    # 材料足够
+                    if kucun["麦芽"] >= 3:
+                        gameData.kucun["麦芽"] -= 3
+                        if success:
+                            gameData.kucun["麦酒"] += 1
+                            print(Fore.GREEN)  # 空行
+                            self.f_printFS("酿酒成功！消耗 3 麦芽，麦酒 + 1 桶")
+                            print(Fore.YELLOW)
+                            input(f"{FIVE_SPACE}回车继续...")
+                        else:
+                            print(Fore.RED)
+                            self.f_printFS("酿酒失败！损耗 3 麦芽")
+                            print(Fore.YELLOW)
+                            input(f"{FIVE_SPACE}回车继续...")
+                    # 材料不够
                     else:
-                        print(Fore.RED)
-                        self.f_printFS("酿酒失败！损耗 3 麦芽")
-                        print(Fore.YELLOW)
-                        input(f"{FIVE_SPACE}回车继续...")
-                elif choice == "2" and kucun["蜂蜜"] >= 2 and kucun["麦芽"] >= 1:
-                    gameData.kucun["蜂蜜"] -= 2
-                    gameData.kucun["麦芽"] -= 1
-                    if success:
-                        gameData.kucun["蜜酒"] += 1
-                        print(Fore.GREEN)
-                        self.f_printFS("酿酒成功！消耗 2 蜂蜜 1 麦芽，蜜酒 + 1 桶")
-                        print(Fore.YELLOW)
-                        input(f"{FIVE_SPACE}回车继续...")
+                        input(f'{FIVE_SPACE}麦酒 酿酒材料不足!')
+                elif choice == "2":
+                    if kucun["蜂蜜"] >= 2 and kucun["麦芽"] >= 1:
+                        gameData.kucun["蜂蜜"] -= 2
+                        gameData.kucun["麦芽"] -= 1
+                        if success:
+                            gameData.kucun["蜜酒"] += 1
+                            print(Fore.GREEN)
+                            self.f_printFS("酿酒成功！消耗 2 蜂蜜 1 麦芽，蜜酒 + 1 桶")
+                            print(Fore.YELLOW)
+                            input(f"{FIVE_SPACE}回车继续...")
+                        else:
+                            print(Fore.RED)
+                            self.f_printFS("酿酒失败！损耗 2 蜂蜜 1 麦芽")
+                            print(Fore.YELLOW)
+                            input(f"{FIVE_SPACE}回车继续...")
                     else:
-                        print(Fore.RED)
-                        self.f_printFS("酿酒失败！损耗 2 蜂蜜 1 麦芽")
-                        print(Fore.YELLOW)
-                        input(f"{FIVE_SPACE}回车继续...")
-                elif choice == "3" and kucun["浆果"] >= 2 and kucun["麦芽"] >= 1:
-                    gameData.kucun["浆果"] -= 2
-                    gameData.kucun["麦芽"] -= 1
-                    if success:
-                        gameData.kucun["果酒"] += 1
-                        print(Fore.GREEN)
-                        self.f_printFS("酿酒成功！消耗 2 浆果 1 麦芽，果酒 + 1 桶")
-                        print(Fore.YELLOW)
-                        input(f"{FIVE_SPACE}回车继续...")
+                        input(f'{FIVE_SPACE}蜜酒 酿酒材料不足!')
+                elif choice == "3":
+                    if kucun["浆果"] >= 2 and kucun["麦芽"] >= 1:
+                        gameData.kucun["浆果"] -= 2
+                        gameData.kucun["麦芽"] -= 1
+                        if success:
+                            gameData.kucun["果酒"] += 1
+                            print(Fore.GREEN)
+                            self.f_printFS("酿酒成功！消耗 2 浆果 1 麦芽，果酒 + 1 桶")
+                            print(Fore.YELLOW)
+                            input(f"{FIVE_SPACE}回车继续...")
+                        else:
+                            print(Fore.RED)
+                            self.f_printFS("酿酒失败！损耗 2 浆果 1 麦芽")
+                            print(Fore.YELLOW)
+                            input(f"{FIVE_SPACE}回车继续...")
                     else:
-                        print(Fore.RED)
-                        self.f_printFS("酿酒失败！损耗 2 浆果 1 麦芽")
-                        print(Fore.YELLOW)
-                        input(f"{FIVE_SPACE}回车继续...")
+                        input(f'{FIVE_SPACE}果酒 酿酒材料不足!')
 
     # 采购原料界面
     def page_buyResource(self):
         gameData = getGameData()
+        # 声望-1
+        gameData.shengwang -= 1
+        # 今日声望-1
+        gameData.today["声望"] -= 1
         # 每天的原料购买上限
         limit = {
             "麦芽": 25,
@@ -586,6 +661,10 @@ class GamePage(GameFuncs):
                         if isTip:
                             tip += random.randint(cst["小费"]["金额"]["min"], cst["小费"]["金额"]["max"])
                             gameData.jinbi += tip
+                        # 在今日中增加销量、声望和收入
+                        gameData.today["销量"][cst_need["酒类"]] += cst_need["数量"] * 0.25
+                        gameData.today["声望"] += cst["声望增加"]
+                        gameData.today["收入"] += (tip + cst_need["消费"])
                         # 将该客人从客人列表中移出
                         del customers[0]
                         # 触发客人对话
@@ -604,6 +683,7 @@ class GamePage(GameFuncs):
                             text = f'{cst["名字"]} 因为没喝到酒非常生气，掀翻了酒馆好几个桌子，虽然你及时制止了他，但还是损失了一些物品'
                             self.f_printLongText(text)
                             self.f_decNaijiu(2)
+                            gameData.today["耐久"] -= 2
                             input(f"{FIVE_SPACE}酒馆耐久 -2")
                         else:  # 客人没有生气，离开酒馆
                             input(f'{FIVE_SPACE}{cst["名字"]} 有些失望，摇摇头离开了酒馆')
@@ -611,12 +691,14 @@ class GamePage(GameFuncs):
                 elif choice == "2":
                     # 扣除声望
                     self.f_decShengWang(0.5)
+                    gameData.today["声望"] -= 0.5
                     # 闹事
                     if self.f_chance(50):
                         text = f'{cst["名字"]}听说你要赶走他，非常的生气，愤怒的他砸坏了你几张桌子，你及时制止了他，但还不不可避免的损失了些东西'
                         self.f_printLongText(text)
                         # 扣除耐久
                         self.f_decNaijiu(2)
+                        gameData.today["耐久"] -= 2
                         input(f'{FIVE_SPACE}酒馆耐久 -2')
                     else:
                         text = f'{cst["名字"]}听说你要赶走他，失落又生气的离开了...'
@@ -633,6 +715,10 @@ class GamePage(GameFuncs):
     # 修缮酒馆界面
     def page_fixBar(self):
         gameData = getGameData()
+        # 声望-1
+        gameData.shengwang -= 1
+        # 今日声望-1
+        gameData.today["声望"] -= 1
         while True:
             self.f_clearScreen()
             self.f_printTitle("修缮奥克的酒馆")
@@ -658,6 +744,8 @@ class GamePage(GameFuncs):
                 if gameData.jinbi >= 1:
                     gameData.jinbi -= 1
                     self.f_addNaijiu(2)
+                    gameData.today["收入"] -= 1
+                    gameData.today["耐久"] += 2
                     input(f'{FIVE_SPACE}简易修补完成，酒馆耐久 +2')
                 # 金币不够
                 else:
@@ -668,7 +756,10 @@ class GamePage(GameFuncs):
                     gameData.jinbi -= 3
                     self.f_addNaijiu(4)
                     self.f_addShengWang(1)
-                    input(f'{FIVE_SPACE}更换木桌完成，酒馆耐久 +2，酒馆声望 +1')
+                    gameData.today["收入"] -= 3
+                    gameData.today["耐久"] += 4
+                    gameData.today["声望"] += 1
+                    input(f'{FIVE_SPACE}更换木桌完成，酒馆耐久 +4，酒馆声望 +1')
                 # 金币不够
                 else:
                     input(f'{FIVE_SPACE}更换木桌失败，金币不够')
@@ -716,7 +807,7 @@ class GamePage(GameFuncs):
             if choice == "0":
                 break
 
-    # 今日营业结果
+    # 今日营业结果界面
     def page_todayResult(self):
         gameData = getGameData()
         while True:
@@ -728,11 +819,11 @@ class GamePage(GameFuncs):
             print()
             # 收入
             self.f_printFS(f"- 收入: {'+' if gameData.today['收入'] >= 0 else '-'}{gameData.today['收入']}\n")
-            # 销售
-            one   = f'麦酒:{gameData.today["销售"]["麦酒"]}桶'
-            two   = f'蜜酒:{gameData.today["销售"]["蜜酒"]}桶'
-            three = f'果酒:{gameData.today["销售"]["果酒"]}桶'
-            self.f_printFS(f"- 销售: {one}{FIVE_SPACE}{two}{FIVE_SPACE}{three}\n")
+            # 销量
+            one   = f'麦酒:{gameData.today["销量"]["麦酒"]}桶'
+            two   = f'蜜酒:{gameData.today["销量"]["蜜酒"]}桶'
+            three = f'果酒:{gameData.today["销量"]["果酒"]}桶'
+            self.f_printFS(f"- 销量: {one}{FIVE_SPACE}{two}{FIVE_SPACE}{three}\n")
             # 声望
             self.f_printFS(f"- 声望: {'+' if gameData.today['声望'] >= 0 else '-'}{gameData.today['声望']}\n")
             # 耐久
@@ -740,7 +831,60 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             input(f'{FIVE_SPACE}按下回车继续...')
+            # 重置每日的状态
+            gameData.today = {
+                "收入": 0,
+                "销量": {
+                    "麦酒": 0,
+                    "蜜酒": 0,
+                    "果酒": 0
+                },
+                "声望": 0,
+                "耐久": 0
+            }
             break
+
+    # 随机事件界面
+    def page_randomEvent(self):
+        """
+        发生随机事件
+        正面事件：
+            商队路过，高价收购 10 桶麦酒（收入 8 枚，声望 + 5）
+            隐士赠送稀有酿酒配方（提升酿酒成功率 10%）
+        负面事件：
+            领主收税，需缴纳 2 枚金币（不交则声望 - 10）
+            酒馆闹鼠患，损耗 5 份麦芽，耐久 - 5
+            醉酒佣兵闹事，打坏家具（耐久 - 15，需花 1 枚修缮）
+        :return: 无
+        """
+        # TODO:随机事件
+        if self.f_chance(30):
+            is_good = self.f_chance(50)
+            # 正面事件
+            if is_good:
+                event = random.choice(["商队","隐士"])
+            # 负面事件
+            else:
+                event = random.choice(["领主","鼠患","闹事"])
+
+    def page_endToday(self):
+        for i in range(3):
+            self.f_clearScreen()
+            self.f_printTitle("奥克的酒馆")
+            print("\n\n\n")
+            self.f_printCenter("酒馆的一天结束了" + "."*(i+1))
+            print("\n\n\n")
+            self.f_printTitle()
+            self.f_sleep(0.5)
+
+    def page_wancheng(self):
+        self.f_clearScreen()
+        self.f_printTitle("奥克的酒馆")
+        print("\n\n\n")
+        self.f_printCenter("今日操作已完成")
+        print("\n\n\n")
+        self.f_printTitle()
+        self.f_sleep(1.5)
 
 class GameData:
     def init(self, data):
@@ -755,9 +899,10 @@ class GameData:
         self.kucun = data["库存"]
         self.shoujia = data["售价"]
         self.zhangben = data["账本"]
+        # 今日数据，不保存存档，打印完今日营业结果后重置
         self.today = {
             "收入": 0,
-            "销售": {
+            "销量": {
                 "麦酒": 0,
                 "蜜酒": 0,
                 "果酒": 0
