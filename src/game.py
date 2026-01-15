@@ -194,6 +194,16 @@ class GameFuncs:
         """
         return " "*((width - self.f_length(text)) // 2)
 
+    def f_finishToday(self):
+        """
+        结束今日
+        :return: 无
+        """
+        # 1、天数+1
+        getGameData().tianshu += 1
+        # 1、保存游戏数据
+        getGameData().save()
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -267,7 +277,7 @@ class GamePage(GameFuncs):
             # 取出掉列表中所有文件名的.json后缀
             files = list(map(lambda file_name: file_name.replace(".json", ""), files))
             for i in range(len(files)):
-                self.f_printFS(f"{i+1}. {files[i]}")
+                self.f_printFS(f"{i+1}. {files[i]} 第{self.f_readSaveData(files[i])['天数']}天")
             self.f_printTitle()
             self.f_printFS("0. 返回\n")
             try:
@@ -295,7 +305,7 @@ class GamePage(GameFuncs):
             # 取出掉列表中所有文件名的.json后缀
             files = list(map(lambda file_name: file_name.replace(".json", ""), files))
             for i in range(len(files)):
-                self.f_printFS(f"{i+1}. {files[i]}")
+                self.f_printFS(f"{i+1}. {files[i]} 第{self.f_readSaveData(files[i])['天数']}天")
             self.f_printTitle()
             self.f_printFS("0. 返回\n")
             try:
@@ -366,9 +376,16 @@ class GamePage(GameFuncs):
                     self.page_fixBar()
                 elif choice == "5":  # 账本
                     self.page_ledger()
-                elif choice == "6":  # 结束今日
-                    pass
-                # 结束今日->营业结果->随机事件->季节结算->解锁新内容
+                # 结束今日->营业结果->随机事件->季节结算
+                # 酿酒、采购、营业、修缮和结束今日 这5个选项都会触发结算函数
+                if choice in ["1","2","3","4","6"]:
+                    # 结算数据
+                    self.f_finishToday()
+                    # 显示营业结果
+                    self.page_todayResult()
+                    # TODO:随机事件
+
+                    # TODO:季节结算
 
     # 酿酒工坊界面
     def page_brew(self):
@@ -699,6 +716,32 @@ class GamePage(GameFuncs):
             if choice == "0":
                 break
 
+    # 今日营业结果
+    def page_todayResult(self):
+        gameData = getGameData()
+        while True:
+            self.f_clearScreen()
+            self.f_printTitle("今日营业结果")
+            self.f_fontColor(Fore.CYAN)
+            # 标题
+            self.f_printFS("—"*20 + " 营业结果 " + "—"*20)
+            print()
+            # 收入
+            self.f_printFS(f"- 收入: {'+' if gameData.today['收入'] >= 0 else '-'}{gameData.today['收入']}\n")
+            # 销售
+            one   = f'麦酒:{gameData.today["销售"]["麦酒"]}桶'
+            two   = f'蜜酒:{gameData.today["销售"]["蜜酒"]}桶'
+            three = f'果酒:{gameData.today["销售"]["果酒"]}桶'
+            self.f_printFS(f"- 销售: {one}{FIVE_SPACE}{two}{FIVE_SPACE}{three}\n")
+            # 声望
+            self.f_printFS(f"- 声望: {'+' if gameData.today['声望'] >= 0 else '-'}{gameData.today['声望']}\n")
+            # 耐久
+            self.f_printFS(f"- 耐久: {'+' if gameData.today['耐久'] >= 0 else '-'}{gameData.today['耐久']}\n")
+            self.f_fontColor(Fore.YELLOW)
+            self.f_printTitle()
+            input(f'{FIVE_SPACE}按下回车继续...')
+            break
+
 class GameData:
     def init(self, data):
         self.file_name = data["文件"]
@@ -712,6 +755,16 @@ class GameData:
         self.kucun = data["库存"]
         self.shoujia = data["售价"]
         self.zhangben = data["账本"]
+        self.today = {
+            "收入": 0,
+            "销售": {
+                "麦酒": 0,
+                "蜜酒": 0,
+                "果酒": 0
+            },
+            "声望": 0,
+            "耐久": 0
+        }
 
     def save(self):
         with open(f"save\\{self.file_name}", 'w', encoding="utf-8") as f:
