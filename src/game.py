@@ -58,6 +58,11 @@ class GameFuncs:
         time.sleep(sec)
 
     def f_chance(self, num):
+        """
+        根据num设定概率，返回True或False
+        :param num: 概率
+        :return: True或False
+        """
         return random.random() < num / 100
 
     def f_printStock(self):
@@ -95,6 +100,51 @@ class GameFuncs:
         else:
             input(f"\n{FIVE_SPACE}余额不足!")
 
+    def f_getCustomers(self):
+        """
+        ①0-20：每天刷新1-3个基础级别客人
+        ②20-40：每天刷新2-6个客人，级别涵盖基础和低级客人
+        ③40-60：每天刷新4-9个客人，级别涵盖基础、低级和中级客人
+        ④60-80：每天刷新6-12个客人，级别涵盖基础、低级、中级和高级客人
+        ⑤80-100：每天刷新8-15个客人，级别涵盖基础、低级、中级、高级和稀有客人
+        :return: 随机抽取的NPC组成的列表
+        """
+        shengwang = getGameData().shengwang
+        # 客人数量和具体客人
+        temp = []
+        num = 0
+        if 0 <= shengwang < 20:
+            num = random.randint(1,3)
+            temp.extend(NPCS["基础"])
+        elif shengwang < 40:
+            num = random.randint(2,6)
+            temp.extend(NPCS["基础"])
+            temp.extend(NPCS["低级"])
+        elif shengwang < 60:
+            num = random.randint(4,9)
+            temp.extend(NPCS["基础"])
+            temp.extend(NPCS["低级"])
+            temp.extend(NPCS["中级"])
+        elif shengwang < 80:
+            num = random.randint(6,12)
+            temp.extend(NPCS["基础"])
+            temp.extend(NPCS["低级"])
+            temp.extend(NPCS["中级"])
+            temp.extend(NPCS["高级"])
+        elif shengwang < 100:
+            num = random.randint(8,15)
+            temp.extend(NPCS["基础"])
+            temp.extend(NPCS["低级"])
+            temp.extend(NPCS["中级"])
+            temp.extend(NPCS["高级"])
+            temp.extend(NPCS["稀有"])
+        return random.choices(temp, k=num)
+
+    def f_printLongText(self, text):
+        text_list = [text[i:i + 40] for i in range(0, self.f_length(text), 40)]
+        for i in text_list:
+            self.f_printFS(i)
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -117,7 +167,7 @@ class GamePage(GameFuncs):
                 elif choice == "4":
                     self.page_gameSetting()
                 elif choice == "5":
-                    break
+                    input()
 
     def page_gameSetting(self):
         while True:
@@ -224,21 +274,14 @@ class GamePage(GameFuncs):
         print("\n\n\n")
         self.f_printTitle()
         input()
+        gameData = getGameData()  # 游戏数据
         while True:
             self.f_clearScreen()
-            gameData = getGameData()  # 游戏数据
             self.f_printTitle(f" 奥克的酒馆 | {gameData.getSeason()} 第{gameData.tianshu}天 ")
             text = f"当前金币: {gameData.getMoney()}枚 | 酒馆声望: {gameData.shengwang} | 酒馆耐久: {gameData.naijiu}"
             self.f_printCenter(text)
             print()  # 空行
-            text = "库存: "
-            for k, v in gameData.kucun.items():
-                if k[-1] != "酒":
-                    text += f"{k}{gameData.kucun[k]} / "
-                else:
-                    text += f"{k}{gameData.kucun[k]}桶 / "
-            text = text[:-3]  # 去掉最后一个"/"符号
-            self.f_printCenter(text)
+            self.f_printStock()
             print()  # 空行
             self.f_fontColor(Fore.CYAN)
             self.f_printCenter("今日操作")
@@ -257,7 +300,7 @@ class GamePage(GameFuncs):
             choice = input(f"{FIVE_SPACE}输入选项: ")
             if choice == "-1":
                 gameData.save()
-                self.f_printFS("保存完成")
+                self.f_printFS("保存完成\n")
                 self.f_sleep()
             elif choice == "-2":
                 gameData.save()
@@ -373,8 +416,8 @@ class GamePage(GameFuncs):
             self.f_printCenter(text[:-3])
             print()
             self.f_fontColor(Fore.CYAN)
-            self.f_printFS("- 市集采购（1.麦芽=0.2金币 2.蜂蜜=0.33金币 3.浆果=0.25金币 4.木材=0.25金币）")
-            self.f_printFS("- 走私商人（5.麦芽=0.3金币 6.蜂蜜=0.50金币 7.浆果=0.40金币 8.木材=0.35金币）")
+            self.f_printFS("- 市集采购（1.麦芽=0.2金币 2.蜂蜜=0.33金币 3.浆果=0.50金币 4.木材=0.25金币）")
+            self.f_printFS("- 走私商人（5.麦芽=0.3金币 6.蜂蜜=0.50金币 7.浆果=0.75金币 8.木材=0.35金币）")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             self.f_printFS("离开采购集市: 0")
@@ -390,7 +433,7 @@ class GamePage(GameFuncs):
                     elif choice == 2:  # 集市蜂蜜
                         self.f_buyFromMarket(limit, "蜂蜜", 0.33, num)
                     elif choice == 3:  # 集市浆果
-                        self.f_buyFromMarket(limit, "浆果", 0.25, num)
+                        self.f_buyFromMarket(limit, "浆果", 0.50, num)
                     elif choice == 4:  # 集市木材
                         self.f_buyFromMarket(limit, "木材", 0.25, num)
                 elif choice in [5,6,7,8]:  # 走私商交易
@@ -400,7 +443,7 @@ class GamePage(GameFuncs):
                     elif choice == 6:  # 走私蜂蜜
                         self.f_buyFromSmuggler("蜂蜜", 0.5, num)
                     elif choice == 7:  # 走私浆果
-                        self.f_buyFromSmuggler("浆果", 0.4, num)
+                        self.f_buyFromSmuggler("浆果", 0.75, num)
                     elif choice == 8:  # 走私木材
                         self.f_buyFromSmuggler("木材", 0.35, num)
             except Exception:
@@ -409,8 +452,76 @@ class GamePage(GameFuncs):
 
     # 开门营业界面
     def page_open(self):
-        pass
-    # TODO:开门营业
+        gameData = getGameData()
+        customers = self.f_getCustomers()  # 因为每日只需要获取一次客人数量，所以放在循环外部
+        while True:
+            self.f_clearScreen()
+            self.f_printTitle("奥克的酒馆营业中")
+            # 酒馆信息
+            text = f"当前金币: {gameData.getMoney()}枚 | 酒馆声望: {gameData.shengwang} | 酒馆耐久: {gameData.naijiu}"
+            self.f_printCenter(text)
+            print()
+            # 库存
+            self.f_printStock()
+            print()
+            # 提示
+            self.f_printCenter("客流量和消费额受声望、酒馆耐久影响。单位：1杯=0.25桶")
+            print()
+            # 客人
+            self.f_fontColor(Fore.CYAN)
+            self.f_printCenter(f"今日客人数量: {len(customers)}")
+            print()
+            # 当前客人
+            cst = customers[0]
+            cst_need = {"数量": random.choice(cst["需求数量"]), "酒类": random.choice(cst["需求酒类"]), "消费": 0}
+            cst_need["消费"] = gameData.shoujia[cst_need["酒类"]] * cst_need["数量"]
+            text = f'- {cst["名字"]}: 需要 {cst_need["数量"]} 杯 {cst_need["酒类"]}'
+            self.f_printFS(text)
+            text = f'- 消费: {cst_need["消费"]} 金币'
+            self.f_printFS(text)
+            print()
+            self.f_printFS("-"*42 + " 操作 " + "-"*42)
+            print()
+            text = f'1.接待（增加声望，增加收入） 2.赶走（降低声望，有几率闹事） 3.结束营业'
+            self.f_printCenter(text)
+            self.f_fontColor(Fore.YELLOW)
+            self.f_printTitle()
+            # 选项
+            choice = input(f"{FIVE_SPACE}输入选项: ")
+            print()
+            if choice == "1":  # 接待
+                # 酒水充足，达成交易
+                if gameData.kucun[cst_need["酒类"]] >= cst_need["数量"] * 0.25:
+                    gameData.kucun[cst_need["酒类"]] -= cst_need["数量"] * 0.25  # 减少库存
+                    gameData.jinbi += cst_need["消费"]  # 增加金币
+                    # 将该客人从客人列表中移出
+                    del customers[0]
+                    # 触发客人对话
+                    text = cst["名字"] + random.choice(NPC_DRUNK_WORDS)
+                    if self.f_length(text) >= 90:
+                        self.f_printLongText(text)
+                    else:
+                        self.f_printFS(text)
+                    input(f'{FIVE_SPACE}接待完成， +{cst_need["消费"]}金币')
+                # 酒水不足，交易失败
+                else:
+                    self.f_printFS("酒水不足，无法完成接待\n")
+                    if self.f_chance(10):  # 10%的概率客人生气闹事
+                        text = f'{cst["名字"]} 因为没喝到酒非常生气，掀翻了酒馆好几个桌子，虽然你及时制止了他，但还是损失了一些物品'
+                        if self.f_length(text) >= 90:  # 如果文本太长处理一下
+                            self.f_printLongText(text)
+                        else:
+                            self.f_printFS(text)
+                        input(f"{FIVE_SPACE}酒馆耐久 -2")
+                    else:  # 客人没有生气，离开酒馆
+                        input(f'{FIVE_SPACE}{cst["名字"]} 有些失望，摇摇头离开了酒馆')
+            elif choice == "2":  # 赶走，必掉声望，50%几率闹事
+                pass
+            elif choice == "3":
+                confirm = input(f"\n{FIVE_SPACE}确定要结束今日营业吗(1是/0否): ")
+                if confirm == "1":
+                    input(f"\n{FIVE_SPACE}已结束今日营业")
+                    break
 
     # 修缮酒馆界面
     def page_fixBar(self):
@@ -428,6 +539,7 @@ class GameData:
         self.zhaiwu = data["债务"]
         self.niangjiu = data["酿酒"]
         self.kucun = data["库存"]
+        self.shoujia = data["售价"]
 
     def save(self):
         with open(f"save\\{self.file_name}", 'w', encoding="utf-8") as f:
@@ -440,7 +552,8 @@ class GameData:
                 "季节": self.jijie,
                 "债务": self.zhaiwu,
                 "酿酒": self.niangjiu,
-                "库存": self.kucun
+                "库存": self.kucun,
+                "售价": self.shoujia
             }
             json.dump(data, f, ensure_ascii=False, indent=4)
 
