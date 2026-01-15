@@ -174,12 +174,25 @@ class GameFuncs:
         if getGameData().naijiu < 0:
             getGameData().naijiu = 0
 
-    def f_confirmClose(self):
-        confirm = input(f"{FIVE_SPACE}确定要结束今日营业吗(1是/0否): ")
+    def f_confirm(self, text, yes_text):
+        confirm = input(f"{FIVE_SPACE}{text}(1是/0否): ")
         if confirm == "1":
-            input(f"\n{FIVE_SPACE}已结束今日营业")
+            input(f"\n{FIVE_SPACE}{yes_text}")
             return True
         return False
+
+    def f_printCaozuo(self):
+        self.f_printFS("—" * 21 + " 操作 " + "—" * 21)
+        print()
+
+    def f_centerSpace(self, width, text):
+        """
+        输入要居中的宽度和文本，计算并返回所需的空格字符串
+        :param width: 总宽度
+        :param text: 文本
+        :return: 所需的空格字符串
+        """
+        return " "*((width - self.f_length(text)) // 2)
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
@@ -351,9 +364,9 @@ class GamePage(GameFuncs):
                     self.page_open()
                 elif choice == "4":
                     self.page_fixBar()
-                elif choice == "5":
-                    pass
-                elif choice == "6":
+                elif choice == "5":  # 账本
+                    self.page_ledger()
+                elif choice == "6":  # 结束今日
                     pass
                 # 结束今日->营业结果->随机事件->季节结算->解锁新内容
 
@@ -371,12 +384,13 @@ class GamePage(GameFuncs):
             self.f_printFS("- 麦酒: 3 麦芽 = 1 桶（成本低，大众款）")
             self.f_printFS("- 蜜酒: 2 蜂蜜 + 1 麦芽 = 1 桶（售价高，受贵族喜欢）")
             self.f_printFS("- 果酒: 2 浆果 + 1 麦芽 = 1 桶（秋季浆果最多）")
-            self.f_fontColor(Fore.YELLOW)
             print()
-            self.f_printFS(f"酿酒技巧: {gameData.niangjiu}%")
+            self.f_printFS(f"酿酒技巧: {gameData.niangjiu}%\n")
+            self.f_printCaozuo()
+            self.f_printCenter("选择酿酒类型: 1.麦酒 2.蜜酒 3.果酒")
+            self.f_printCenter("离开酿造工坊: 0")
+            self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
-            self.f_printFS("选择酿酒类型: 1. 麦酒 2. 蜜酒 3. 果酒")
-            self.f_printFS("离开酿造工坊: 0")
             print()
             choice = input(f"{FIVE_SPACE}输入选项: ")
             if choice == "0":
@@ -455,9 +469,11 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.CYAN)
             self.f_printFS("- 市集采购（1.麦芽=0.2金币 2.蜂蜜=0.33金币 3.浆果=0.50金币 4.木材=0.25金币）")
             self.f_printFS("- 走私商人（5.麦芽=0.3金币 6.蜂蜜=0.50金币 7.浆果=0.75金币 8.木材=0.35金币）")
+            print()
+            self.f_printCaozuo()
+            self.f_printCenter("离开采购集市: 0")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
-            self.f_printFS("离开采购集市: 0")
             print()
             try:
                 choice = int(input(f"{FIVE_SPACE}输入选项: "))
@@ -518,12 +534,12 @@ class GamePage(GameFuncs):
                 text = f'- 消费: {cst_need["消费"]} 金币'
                 self.f_printFS(text)
                 print()
-                self.f_printFS("-"*42 + " 操作 " + "-"*42)
-                print()
+                self.f_printCaozuo()
                 text = f'1.接待（增加声望，增加收入） 2.赶走（降低声望，有几率闹事） 3.结束营业'
                 self.f_printCenter(text)
             # 没有客人
             else:
+                self.f_printCaozuo()
                 text = f'3.结束营业'
                 self.f_printCenter(text)
             self.f_fontColor(Fore.YELLOW)
@@ -539,8 +555,12 @@ class GamePage(GameFuncs):
                     if round(gameData.kucun[cst_need["酒类"]], 2) >= round(cst_need["数量"] * 0.25, 2):
                         # 减少库存
                         gameData.kucun[cst_need["酒类"]] = round(gameData.kucun[cst_need["酒类"]] - cst_need["数量"] * 0.25, 2)
+                        # 在账本增添酒类销量
+                        gameData.zhangben["销量"][cst_need["酒类"]] = round(gameData.zhangben["销量"][cst_need["酒类"]] + cst_need["数量"] * 0.25, 2)
                         # 增加金币
-                        gameData.jinbi += cst_need["消费"]
+                        gameData.jinbi = round(gameData.jinbi + cst_need["消费"], 2)
+                        # 在账本增添利润
+                        gameData.zhangben["利润"] = round(gameData.zhangben["利润"] + cst_need["消费"], 2)
                         # 增加声望
                         self.f_addShengWang(cst["声望增加"])
                         # 小费
@@ -586,17 +606,98 @@ class GamePage(GameFuncs):
                         input(f'{FIVE_SPACE}{text}')
                 # 结束营业
                 elif choice == "3":
-                    if self.f_confirmClose():
+                    if self.f_confirm("确定要结束今日营业吗", "已结束今日营业"):
                         break
             # 结束营业
             elif choice == "3":
-                if self.f_confirmClose():
+                if self.f_confirm("确定要结束今日营业吗", "已结束今日营业"):
                     break
 
     # 修缮酒馆界面
     def page_fixBar(self):
-        pass
-    # TODO:修缮酒馆
+        gameData = getGameData()
+        while True:
+            self.f_clearScreen()
+            self.f_printTitle("修缮奥克的酒馆")
+            # 信息
+            text = f"当前金币: {gameData.getMoney()}枚 | 酒馆声望: {gameData.shengwang} | 酒馆耐久: {gameData.naijiu}"
+            self.f_printCenter(text)
+            print()
+            # 提示
+            self.f_printCenter("不同修缮等级消耗不同金币，提升耐久和声望")
+            print()
+            self.f_fontColor(Fore.CYAN)
+            self.f_printFS("- 简易修补：1 枚金币 -> 耐久 + 2")
+            self.f_printFS("- 更换木桌：3 枚金币 -> 耐久 + 4，声望 + 1")
+            print()
+            self.f_printCaozuo()
+            self.f_printCenter("1.简易修补 2.更换木桌 0.结束修缮")
+            self.f_fontColor(Fore.YELLOW)
+            self.f_printTitle()
+            choice = input(f'{FIVE_SPACE}输入选项: ')
+            print()
+            if choice == "1":
+                # 金币足够
+                if gameData.jinbi >= 1:
+                    gameData.jinbi -= 1
+                    self.f_addNaijiu(2)
+                    input(f'{FIVE_SPACE}简易修补完成，酒馆耐久 +2')
+                # 金币不够
+                else:
+                    input(f'{FIVE_SPACE}简易修补失败，金币不够')
+            elif choice == "2":
+                # 金币足够
+                if gameData.jinbi >= 3:
+                    gameData.jinbi -= 3
+                    self.f_addNaijiu(4)
+                    self.f_addShengWang(1)
+                    input(f'{FIVE_SPACE}更换木桌完成，酒馆耐久 +2，酒馆声望 +1')
+                # 金币不够
+                else:
+                    input(f'{FIVE_SPACE}更换木桌失败，金币不够')
+            elif choice == "0":
+                input(f'{FIVE_SPACE}已结束酒馆修缮')
+                break
+
+    # 查看账本界面
+    def page_ledger(self):
+        gameData = getGameData()
+        while True:
+            self.f_clearScreen()
+            self.f_printTitle("奥克的酒馆账本")
+            self.f_fontColor(Fore.CYAN)
+            # 标题
+            self.f_printFS("—"*21 + " 账本 " + "—"*21)
+            print()
+            # 3项标题
+            zhangben = gameData.zhangben
+            space = " "*13
+            text = f'{space}销量{space * 2}利润{space * 2}债务\n'
+            self.f_printFS(text)
+            # 数据
+            left_list = []
+            for k in zhangben["销量"].keys():
+                sales = zhangben["销量"][k]
+                text = f"{k}:{sales}桶"
+                left_space = self.f_centerSpace(30, text)
+                left_list.append(f"{left_space}{text}{left_space}")
+            middle_space = " "*((30 - self.f_length(zhangben["利润"])) // 2)
+            middle = f'{middle_space}{zhangben["利润"]}{middle_space}'
+            right_space = " "*((30 - self.f_length(zhangben["债务"])) // 2)
+            right = f'{right_space}{zhangben["债务"]}{right_space}'
+            # 打印这3行
+            self.f_printFS(left_list[0] + middle + right)
+            self.f_printFS(left_list[1])
+            self.f_printFS(left_list[2])
+            print()
+            # 操作
+            self.f_printCaozuo()
+            self.f_printCenter("0. 结束查看")
+            self.f_fontColor(Fore.YELLOW)
+            self.f_printTitle()
+            choice = input(f'{FIVE_SPACE}输入选项: ')
+            if choice == "0":
+                break
 
 class GameData:
     def init(self, data):
@@ -610,6 +711,7 @@ class GameData:
         self.niangjiu = data["酿酒"]
         self.kucun = data["库存"]
         self.shoujia = data["售价"]
+        self.zhangben = data["账本"]
 
     def save(self):
         with open(f"save\\{self.file_name}", 'w', encoding="utf-8") as f:
@@ -623,7 +725,8 @@ class GameData:
                 "债务": self.zhaiwu,
                 "酿酒": self.niangjiu,
                 "库存": self.kucun,
-                "售价": self.shoujia
+                "售价": self.shoujia,
+                "账本": self.zhangben
             }
             json.dump(data, f, ensure_ascii=False, indent=4)
 
