@@ -141,9 +141,45 @@ class GameFuncs:
         return random.choices(temp, k=num)
 
     def f_printLongText(self, text):
-        text_list = [text[i:i + 40] for i in range(0, self.f_length(text), 40)]
-        for i in text_list:
-            self.f_printFS(i)
+        """
+        判断文本长度，如果超过长度则换行打印
+        如果不超长则正常打印
+        :param text: 文本字符串
+        :return: 无
+        """
+        if self.f_length(text) >= 90:  # 如果文本太长处理一下
+            text_list = [text[i:i + 40] for i in range(0, self.f_length(text), 40)]
+            for i in text_list:
+                self.f_printFS(i)
+        else:
+            self.f_printFS(text)
+
+    def f_addShengWang(self, shengwang):
+        getGameData().shengwang = round(getGameData().shengwang + shengwang, 2)
+        if getGameData().shengwang > 100:
+            getGameData().shengwang = 100
+
+    def f_decShengWang(self, shengwang):
+        getGameData().shengwang = round(getGameData().shengwang - shengwang, 2)
+        if getGameData().shengwang < 0:
+            getGameData().shengwang = 0
+
+    def f_addNaijiu(self, naijiu):
+        getGameData().naijiu += naijiu
+        if getGameData().naijiu > 100:
+            getGameData().naijiu = 100
+
+    def f_decNaijiu(self, naijiu):
+        getGameData().naijiu -= naijiu
+        if getGameData().naijiu < 0:
+            getGameData().naijiu = 0
+
+    def f_confirmClose(self):
+        confirm = input(f"{FIVE_SPACE}确定要结束今日营业吗(1是/0否): ")
+        if confirm == "1":
+            input(f"\n{FIVE_SPACE}已结束今日营业")
+            return True
+        return False
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
@@ -168,6 +204,7 @@ class GamePage(GameFuncs):
                     self.page_gameSetting()
                 elif choice == "5":
                     input()
+                    break
 
     def page_gameSetting(self):
         while True:
@@ -471,56 +508,89 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.CYAN)
             self.f_printCenter(f"今日客人数量: {len(customers)}")
             print()
-            # 当前客人
-            cst = customers[0]
-            cst_need = {"数量": random.choice(cst["需求数量"]), "酒类": random.choice(cst["需求酒类"]), "消费": 0}
-            cst_need["消费"] = gameData.shoujia[cst_need["酒类"]] * cst_need["数量"]
-            text = f'- {cst["名字"]}: 需要 {cst_need["数量"]} 杯 {cst_need["酒类"]}'
-            self.f_printFS(text)
-            text = f'- 消费: {cst_need["消费"]} 金币'
-            self.f_printFS(text)
-            print()
-            self.f_printFS("-"*42 + " 操作 " + "-"*42)
-            print()
-            text = f'1.接待（增加声望，增加收入） 2.赶走（降低声望，有几率闹事） 3.结束营业'
-            self.f_printCenter(text)
+            # 有客人
+            if len(customers) != 0:  # 排队客人不小于0个
+                cst = customers[0]
+                cst_need = {"数量": random.choice(cst["需求数量"]), "酒类": random.choice(cst["需求酒类"]), "消费": 0}
+                cst_need["消费"] = gameData.shoujia[cst_need["酒类"]] * cst_need["数量"]
+                text = f'- {cst["名字"]}: 需要 {cst_need["数量"]} 杯 {cst_need["酒类"]}'
+                self.f_printFS(text)
+                text = f'- 消费: {cst_need["消费"]} 金币'
+                self.f_printFS(text)
+                print()
+                self.f_printFS("-"*42 + " 操作 " + "-"*42)
+                print()
+                text = f'1.接待（增加声望，增加收入） 2.赶走（降低声望，有几率闹事） 3.结束营业'
+                self.f_printCenter(text)
+            # 没有客人
+            else:
+                text = f'3.结束营业'
+                self.f_printCenter(text)
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             # 选项
             choice = input(f"{FIVE_SPACE}输入选项: ")
             print()
-            if choice == "1":  # 接待
-                # 酒水充足，达成交易
-                if gameData.kucun[cst_need["酒类"]] >= cst_need["数量"] * 0.25:
-                    gameData.kucun[cst_need["酒类"]] -= cst_need["数量"] * 0.25  # 减少库存
-                    gameData.jinbi += cst_need["消费"]  # 增加金币
-                    # 将该客人从客人列表中移出
-                    del customers[0]
-                    # 触发客人对话
-                    text = cst["名字"] + random.choice(NPC_DRUNK_WORDS)
-                    if self.f_length(text) >= 90:
-                        self.f_printLongText(text)
-                    else:
-                        self.f_printFS(text)
-                    input(f'{FIVE_SPACE}接待完成， +{cst_need["消费"]}金币')
-                # 酒水不足，交易失败
-                else:
-                    self.f_printFS("酒水不足，无法完成接待\n")
-                    if self.f_chance(10):  # 10%的概率客人生气闹事
-                        text = f'{cst["名字"]} 因为没喝到酒非常生气，掀翻了酒馆好几个桌子，虽然你及时制止了他，但还是损失了一些物品'
-                        if self.f_length(text) >= 90:  # 如果文本太长处理一下
+            # 有客人才能处理1和2选项
+            if len(customers) != 0:
+                # 接待
+                if choice == "1":
+                    # 酒水充足，达成交易
+                    if round(gameData.kucun[cst_need["酒类"]], 2) >= round(cst_need["数量"] * 0.25, 2):
+                        # 减少库存
+                        gameData.kucun[cst_need["酒类"]] = round(gameData.kucun[cst_need["酒类"]] - cst_need["数量"] * 0.25, 2)
+                        # 增加金币
+                        gameData.jinbi += cst_need["消费"]
+                        # 增加声望
+                        self.f_addShengWang(cst["声望增加"])
+                        # 小费
+                        isTip = self.f_chance(cst["小费"]["概率"])
+                        tip = 0
+                        if isTip:
+                            tip += random.randint(cst["小费"]["金额"]["min"], cst["小费"]["金额"]["max"])
+                            gameData.jinbi += tip
+                        # 将该客人从客人列表中移出
+                        del customers[0]
+                        # 触发客人对话
+                        text = cst["名字"] + random.choice(NPC_DRUNK_WORDS)
+                        if self.f_length(text) >= 90:
                             self.f_printLongText(text)
                         else:
                             self.f_printFS(text)
-                        input(f"{FIVE_SPACE}酒馆耐久 -2")
-                    else:  # 客人没有生气，离开酒馆
-                        input(f'{FIVE_SPACE}{cst["名字"]} 有些失望，摇摇头离开了酒馆')
-            elif choice == "2":  # 赶走，必掉声望，50%几率闹事
-                pass
+                        # 结语
+                        text = f'{FIVE_SPACE}接待完成， +{cst_need["消费"]}金币\n{FIVE_SPACE}小费: {tip}金币\n{FIVE_SPACE}声望增加: {cst["声望增加"]}'
+                        input(text)
+                    # 酒水不足，交易失败
+                    else:
+                        self.f_printFS("酒水不足，无法完成接待\n")
+                        if self.f_chance(10):  # 10%的概率客人生气闹事
+                            text = f'{cst["名字"]} 因为没喝到酒非常生气，掀翻了酒馆好几个桌子，虽然你及时制止了他，但还是损失了一些物品'
+                            self.f_printLongText(text)
+                            self.f_decNaijiu(2)
+                            input(f"{FIVE_SPACE}酒馆耐久 -2")
+                        else:  # 客人没有生气，离开酒馆
+                            input(f'{FIVE_SPACE}{cst["名字"]} 有些失望，摇摇头离开了酒馆')
+                # 赶走
+                elif choice == "2":
+                    # 扣除声望
+                    self.f_decShengWang(0.5)
+                    # 闹事
+                    if self.f_chance(50):
+                        text = f'{cst["名字"]}听说你要赶走他，非常的生气，愤怒的他砸坏了你几张桌子，你及时制止了他，但还不不可避免的损失了些东西'
+                        self.f_printLongText(text)
+                        # 扣除耐久
+                        self.f_decNaijiu(2)
+                        input(f'{FIVE_SPACE}酒馆耐久 -2')
+                    else:
+                        text = f'{cst["名字"]}听说你要赶走他，失落又生气的离开了...'
+                        input(f'{FIVE_SPACE}{text}')
+                # 结束营业
+                elif choice == "3":
+                    if self.f_confirmClose():
+                        break
+            # 结束营业
             elif choice == "3":
-                confirm = input(f"\n{FIVE_SPACE}确定要结束今日营业吗(1是/0否): ")
-                if confirm == "1":
-                    input(f"\n{FIVE_SPACE}已结束今日营业")
+                if self.f_confirmClose():
                     break
 
     # 修缮酒馆界面
