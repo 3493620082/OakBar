@@ -282,6 +282,7 @@ class GameFuncs:
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
+        print(Fore.YELLOW)
         while True:
             self.f_clearScreen()
             self.f_printTitle(CONFIG["game_name"])
