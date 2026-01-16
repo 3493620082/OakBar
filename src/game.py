@@ -262,6 +262,24 @@ class GameFuncs:
         if getGameData().niangjiu >= 100:
             getGameData().niangjiu = 100
 
+    def f_setSoundVolume(self):
+        for k in SOUNDS.keys():
+            SOUNDS[k].set_volume(CONFIG["sound_vol"] / 10)
+
+    def f_addSound(self, name, file_name):
+        file_path = "media\\sound\\"
+        SOUNDS[name] = mixer.Sound(file_path + file_name)
+
+    def f_initSounds(self):
+        # 这里添加所有的音效
+        self.f_addSound("翻页", "翻页.ogg")
+        self.f_addSound("酿酒工坊", "酿酒工坊.ogg")
+        self.f_addSound("采购原料", "采购原料.ogg")
+        self.f_addSound("开门营业", "开门营业.ogg")
+        self.f_addSound("修缮酒馆", "修缮酒馆.ogg")
+        # 设置音效音量
+        self.f_setSoundVolume()
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -276,12 +294,16 @@ class GamePage(GameFuncs):
             choice = input(f"{FIVE_SPACE}输入选项: ")
             if choice in ["1","2","3","4","5"]:
                 if choice == "1":
+                    SOUNDS["翻页"].play()
                     self.page_playNewGame()
                 elif choice == "2":
+                    SOUNDS["翻页"].play()
                     self.page_choiceSave()
                 elif choice == "3":
+                    SOUNDS["翻页"].play()
                     self.page_deleteSave()
                 elif choice == "4":
+                    SOUNDS["翻页"].play()
                     self.page_gameSetting()
                 elif choice == "5":
                     break
@@ -291,22 +313,29 @@ class GamePage(GameFuncs):
             self.f_clearScreen()
             self.f_printTitle("游戏设置")
             self.f_printFS("1. 音乐音量: " + str(CONFIG["music_vol"]))
-            # TODO:其他设置项
+            self.f_printFS("2. 音效音量: " + str(CONFIG["sound_vol"]))
             self.f_printFS("0. 返回")
             self.f_printTitle()
-            choice = input(f"{FIVE_SPACE}输入选项: ")
-            if choice == "0":
-                break
-            elif choice == "1":
-                try:
+            try:
+                choice = input(f"{FIVE_SPACE}输入选项: ")
+                if choice == "0":
+                    break
+                elif choice == "1":
                     vol = int(input(f"{FIVE_SPACE}输入数值: "))
                     if vol > 10: vol = 10
                     elif vol < 0:vol = 0
                     CONFIG["music_vol"] = vol
                     self.f_writeConfig(CONFIG)
                     mixer.music.set_volume(CONFIG["music_vol"] / 10)
-                except Exception:
-                    print("输入有误!")
+                elif choice == "2":
+                    vol = int(input(f'{FIVE_SPACE}输入数值: '))
+                    if vol > 10: vol = 10
+                    elif vol < 0:vol = 0
+                    CONFIG["sound_vol"] = vol
+                    self.f_writeConfig(CONFIG)
+                    self.f_setSoundVolume()
+            except Exception:
+                print("输入有误!")
 
     def page_playNewGame(self):
         # 播放动画
@@ -392,9 +421,9 @@ class GamePage(GameFuncs):
         self.f_printTitle()
         input()
         gameData = getGameData()  # 游戏数据
+        # 第几天界面
+        self.page_tianshu()
         while True:
-            # 第几天界面
-            self.page_tianshu()
             # 主界面内容
             self.f_clearScreen()
             self.f_printTitle(f" 奥克的酒馆 | {gameData.getSeason()} 第{gameData.tianshu}天 ")
@@ -426,6 +455,7 @@ class GamePage(GameFuncs):
                 gameData.save()
                 break
             elif choice in ["1","2","3","4","5","6"]:
+                SOUNDS["翻页"].play()
                 if choice == "1":
                     self.page_brew()
                 elif choice == "2":
@@ -449,6 +479,8 @@ class GamePage(GameFuncs):
                     self.page_randomEvent()
                     # 今日结束语界面
                     self.page_endToday()
+                    # 第几天界面
+                    self.page_tianshu()
 
     # 酿酒工坊界面
     def page_brew(self):
@@ -457,6 +489,8 @@ class GamePage(GameFuncs):
         gameData.shengwang -= 1
         # 今日声望-1
         gameData.today["声望"] -= 1
+        # 开始播放音效
+        SOUNDS["酿酒工坊"].play(-1)
         while True:
             self.f_clearScreen()
             self.f_printTitle("奥克的酿酒工坊")
@@ -535,6 +569,8 @@ class GamePage(GameFuncs):
                             input(f"{FIVE_SPACE}回车继续...")
                     else:
                         input(f'{FIVE_SPACE}果酒 酿酒材料不足!')
+        # 关闭音效
+        SOUNDS["酿酒工坊"].stop()
 
     # 采购原料界面
     def page_buyResource(self):
@@ -550,6 +586,7 @@ class GamePage(GameFuncs):
             "浆果": 20,
             "木材": 20
         }
+        SOUNDS["采购原料"].play(-1)
         while True:
             self.f_clearScreen()
             self.f_printTitle("采购原料")
@@ -601,11 +638,13 @@ class GamePage(GameFuncs):
             except Exception:
                 self.f_printFS("输入有误!")
                 self.f_sleep()
+        SOUNDS["采购原料"].stop()
 
     # 开门营业界面
     def page_open(self):
         gameData = getGameData()
         customers = self.f_getCustomers()  # 因为每日只需要获取一次客人数量，所以放在循环外部
+        SOUNDS["开门营业"].play(-1)
         while True:
             self.f_clearScreen()
             self.f_printTitle("奥克的酒馆营业中")
@@ -627,7 +666,7 @@ class GamePage(GameFuncs):
             if len(customers) != 0:  # 排队客人不小于0个
                 cst = customers[0]
                 cst_need = {"数量": random.choice(cst["需求数量"]), "酒类": random.choice(cst["需求酒类"]), "消费": 0}
-                cst_need["消费"] = gameData.shoujia[cst_need["酒类"]] * cst_need["数量"]
+                cst_need["消费"] = round(gameData.shoujia[cst_need["酒类"]] * cst_need["数量"], 2)
                 text = f'- {cst["名字"]}: 需要 {cst_need["数量"]} 杯 {cst_need["酒类"]}'
                 self.f_printFS(text)
                 text = f'- 消费: {cst_need["消费"]} 金币'
@@ -718,6 +757,7 @@ class GamePage(GameFuncs):
             elif choice == "3":
                 if self.f_confirm("确定要结束今日营业吗", "已结束今日营业"):
                     break
+        SOUNDS["开门营业"].stop()
 
     # 修缮酒馆界面
     def page_fixBar(self):
@@ -726,6 +766,7 @@ class GamePage(GameFuncs):
         gameData.shengwang -= 1
         # 今日声望-1
         gameData.today["声望"] -= 1
+        SOUNDS["修缮酒馆"].play(-1)
         while True:
             self.f_clearScreen()
             self.f_printTitle("修缮奥克的酒馆")
@@ -773,6 +814,7 @@ class GamePage(GameFuncs):
             elif choice == "0":
                 input(f'{FIVE_SPACE}已结束酒馆修缮')
                 break
+        SOUNDS["修缮酒馆"].stop()
 
     # 查看账本界面
     def page_ledger(self):
@@ -1006,6 +1048,7 @@ class GamePage(GameFuncs):
     # 天数界面
     def page_tianshu(self):
         self.f_clearScreen()
+        SOUNDS["翻页"].play()
         self.f_printTitle(CONFIG["game_name"])
         print("\n\n\n")
         self.f_printCenter(f'第{getGameData().tianshu}天')
