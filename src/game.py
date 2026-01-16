@@ -282,7 +282,6 @@ class GameFuncs:
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
-        print(Fore.YELLOW)
         while True:
             self.f_clearScreen()
             self.f_printTitle(CONFIG["game_name"])
@@ -315,7 +314,10 @@ class GamePage(GameFuncs):
             self.f_printTitle("游戏设置")
             self.f_printFS("1. 音乐音量: " + str(CONFIG["music_vol"]))
             self.f_printFS("2. 音效音量: " + str(CONFIG["sound_vol"]))
+            print()
             self.f_printFS("0. 返回")
+            self.f_printFS("-  Ctrl+鼠标滚轮放大界面")
+            self.f_printFS("-  游戏界面宽度不齐请将窗口字体改为新宋体：右键窗口标题栏-属性-字体")
             self.f_printTitle()
             try:
                 choice = input(f"{FIVE_SPACE}输入选项: ")
@@ -342,6 +344,7 @@ class GamePage(GameFuncs):
         # 播放动画
         with open("media\\story\\1.txt", 'r', encoding="utf-8") as f:
             for line in list(f):
+                SOUNDS["翻页"].play()
                 self.f_clearScreen()
                 self.f_printTitle(CONFIG["game_name"])
                 print("\n\n\n")
