@@ -867,14 +867,14 @@ class GamePage(GameFuncs):
             self.f_printFS("—"*20 + " 营业结果 " + "—"*20)
             print()
             # 收入
-            self.f_printFS(f"- 收入: {gameData.today['收入']}\n")
+            self.f_printFS(f"- 收入: {round(gameData.today['收入'], 2)}\n")
             # 销量
             one   = f'麦酒:{gameData.today["销量"]["麦酒"]}桶'
             two   = f'蜜酒:{gameData.today["销量"]["蜜酒"]}桶'
             three = f'果酒:{gameData.today["销量"]["果酒"]}桶'
             self.f_printFS(f"- 销量: {one}{FIVE_SPACE}{two}{FIVE_SPACE}{three}\n")
             # 声望
-            self.f_printFS(f"- 声望: {gameData.today['声望']}\n")
+            self.f_printFS(f"- 声望: {round(gameData.today['声望'], 2)}\n")
             # 耐久
             self.f_printFS(f"- 耐久: {gameData.today['耐久']}")
             self.f_fontColor(Fore.YELLOW)
