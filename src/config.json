@@ -1,5 +1,6 @@
 {
+    "version": "1.0",
     "game_name": "奥克的酒馆",
-    "music_vol": 5,
+    "music_vol": 3,
     "sound_vol": 10
 }
