@@ -280,6 +280,23 @@ class GameFuncs:
         # 设置音效音量
         self.f_setSoundVolume()
 
+    def f_unlockNPCStory(self, npc_name):
+        """
+        解锁NPC图鉴
+        :param npc_name: NPC的名字
+        :return: 无
+        """
+        for k in NPCS.keys():
+            for i in range(len(NPCS[k])):
+                # 未解锁则解锁
+                if NPCS[k][i]["名字"] == npc_name and (not NPCS[k][i]["故事"]["解锁"]):
+                    NPCS[k][i]["故事"]["解锁"] = True
+                    # 将解锁后的数据写入到npc.json中
+                    with open("src\\npc.json", 'w', encoding="utf-8") as f:
+                        json.dump(NPCS, f, ensure_ascii=False, indent=4)
+                        # 直接结束函数
+                        return
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -289,10 +306,11 @@ class GamePage(GameFuncs):
             self.f_printFS("2. 读取存档")
             self.f_printFS("3. 删除存档")
             self.f_printFS("4. 游戏设置")
-            self.f_printFS("5. 退出游戏")
+            self.f_printFS("5. NPC图鉴")
+            self.f_printFS("6. 退出游戏")
             self.f_printTitle("")
             choice = input(f"{FIVE_SPACE}输入选项: ")
-            if choice in ["1","2","3","4","5"]:
+            if choice in ["1","2","3","4","5","6"]:
                 if choice == "1":
                     SOUNDS["翻页"].play()
                     self.page_playNewGame()
@@ -306,6 +324,9 @@ class GamePage(GameFuncs):
                     SOUNDS["翻页"].play()
                     self.page_gameSetting()
                 elif choice == "5":
+                    SOUNDS["翻页"].play()
+                    self.page_showNPCStory()
+                elif choice == "6":
                     break
 
     def page_gameSetting(self):
@@ -720,6 +741,8 @@ class GamePage(GameFuncs):
                         del customers[0]
                         # 触发客人对话
                         text = cst["名字"] + random.choice(NPC_DRUNK_WORDS)
+                        # 解锁NPC图鉴
+                        self.f_unlockNPCStory(cst["名字"])
                         if self.f_length(text) >= 90:
                             self.f_printLongText(text)
                         else:
@@ -1058,6 +1081,56 @@ class GamePage(GameFuncs):
         print("\n\n\n")
         self.f_printTitle()
         self.f_sleep()
+
+    # 主菜单的NPC图鉴界面
+    def page_showNPCStory(self):
+        all_npc = []
+        for k in NPCS.keys():
+            all_npc.extend(NPCS[k])
+        while True:
+            self.f_clearScreen()
+            self.f_printTitle("NPC图鉴")
+            self.f_fontColor(Fore.CYAN)
+            self.f_printCenter("NPC只有在成功接待后才能解锁")
+            for npc in all_npc:
+                lock = npc["故事"]["解锁"]
+                if lock:lock = Fore.GREEN + "[已解锁]" + Fore.CYAN
+                else:lock = Fore.RED + "[未解锁]" + Fore.CYAN
+                space = " " * (90 - self.f_length(npc["名字"]) - 8)
+                self.f_printFS(f'{npc["名字"]}{space}{lock}')
+            self.f_printCaozuo()
+            self.f_printCenter("查看图鉴：输入名字    返回主菜单：0")
+            self.f_fontColor(Fore.YELLOW)
+            self.f_printTitle()
+            choice = input(f"{FIVE_SPACE}输入选择: ")
+            if choice == "0":
+                break
+            else:
+                find = False
+                self.f_clearScreen()
+                self.f_printTitle("NPC图鉴")
+                for npc in all_npc:
+                    if npc["名字"] == choice:
+                        find = True
+                        self.f_printCenter(npc["名字"])
+                        print()
+                        self.f_fontColor(Fore.CYAN)
+                        if npc["故事"]["解锁"]:
+                            self.f_printLongText(npc["故事"]["文本"])
+                        else:
+                            self.f_printCenter("[未解锁]")
+                        self.f_fontColor(Fore.YELLOW)
+                        self.f_printTitle()
+                        input(f'{FIVE_SPACE}按下回车返回...')
+                        break
+                if not find:
+                    print("\n\n\n")
+                    self.f_fontColor(Fore.CYAN)
+                    self.f_printCenter("NPC名字不存在")
+                    self.f_fontColor(Fore.YELLOW)
+                    print("\n\n\n")
+                    self.f_printTitle()
+                    input(f'{FIVE_SPACE}按下回车返回...')
 
 class GameData:
     def init(self, data):
