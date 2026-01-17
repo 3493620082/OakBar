@@ -461,15 +461,20 @@ class GamePage(GameFuncs):
             elif choice in ["1","2","3","4","5","6"]:
                 SOUNDS["翻页"].play()
                 if choice == "1":
+                    self.f_decShengWang(0.2)
                     self.page_brew()
                 elif choice == "2":
+                    self.f_decShengWang(0.2)
                     self.page_buyResource()
                 elif choice == "3":
                     self.page_open()
                 elif choice == "4":
+                    self.f_decShengWang(0.2)
                     self.page_fixBar()
                 elif choice == "5":  # 账本
                     self.page_ledger()
+                elif choice == "6":  # 结束今日
+                    self.f_decShengWang(0.2)
                 # 结束今日->营业结果->随机事件
                 # 酿酒、采购、营业、修缮和结束今日 这5个选项都会触发结算函数
                 if choice in ["1","2","3","4","6"]:
@@ -489,8 +494,6 @@ class GamePage(GameFuncs):
     # 酿酒工坊界面
     def page_brew(self):
         gameData = getGameData()
-        # 声望-1
-        gameData.shengwang -= 1
         # 今日声望-1
         gameData.today["声望"] -= 1
         # 开始播放音效
@@ -579,8 +582,6 @@ class GamePage(GameFuncs):
     # 采购原料界面
     def page_buyResource(self):
         gameData = getGameData()
-        # 声望-1
-        gameData.shengwang -= 1
         # 今日声望-1
         gameData.today["声望"] -= 1
         # 每天的原料购买上限
@@ -766,8 +767,6 @@ class GamePage(GameFuncs):
     # 修缮酒馆界面
     def page_fixBar(self):
         gameData = getGameData()
-        # 声望-1
-        gameData.shengwang -= 1
         # 今日声望-1
         gameData.today["声望"] -= 1
         SOUNDS["修缮酒馆"].play(-1)
