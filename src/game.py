@@ -1007,7 +1007,7 @@ class GamePage(GameFuncs):
                     print("\n\n\n")
                     self.f_printCenter("一个不知从哪里来的隐士，进来讨了一杯水喝，走后留下了一份稀有的酿酒配方")
                     self.f_printCenter("（提升酿酒成功率 10%）")
-                    self.f_addNaijiu(10)
+                    self.f_addNiangJiu(10)
                     getGameData().save()
                     print("\n\n\n")
                     self.f_printTitle()
