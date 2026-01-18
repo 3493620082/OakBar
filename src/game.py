@@ -332,6 +332,17 @@ class GameFuncs:
     def f_decJinbi(self, num):
         getGameData().jinbi = round(getGameData().jinbi - num, 2)
 
+    def f_printNPCBasic(self, all_npc, index):
+        npc = all_npc[index]
+        # 是否解锁
+        lock = npc["故事"]["解锁"]
+        if lock:
+            lock = Fore.GREEN + "[已解锁]" + Fore.CYAN
+        else:
+            lock = Fore.RED + "[未解锁]" + Fore.CYAN
+        space = " " * (40 - self.f_length(npc["名字"]) - 8 - self.f_length(index+1))
+        print(f'{FIVE_SPACE}{index+1}.{npc["名字"]}{space}{lock}', end="")
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -363,7 +374,7 @@ class GamePage(GameFuncs):
                     self.page_gameSetting()
                 elif choice == "5":
                     SOUNDS["翻页"].play()
-                    self.page_showNPCStory()
+                    self.page_showNPCS()
                 elif choice == "6":
                     break
 
@@ -1127,7 +1138,7 @@ class GamePage(GameFuncs):
         self.f_sleep()
 
     # 主菜单的NPC图鉴界面
-    def page_showNPCStory(self):
+    def page_showNPCS(self):
         all_npc = []
         for k in NPCS.keys():
             all_npc.extend(NPCS[k])
@@ -1136,45 +1147,58 @@ class GamePage(GameFuncs):
             self.f_printTitle("NPC图鉴")
             self.f_fontColor(Fore.CYAN)
             self.f_printCenter("NPC只有在成功接待后才能解锁")
-            for npc in all_npc:
-                lock = npc["故事"]["解锁"]
-                if lock:lock = Fore.GREEN + "[已解锁]" + Fore.CYAN
-                else:lock = Fore.RED + "[未解锁]" + Fore.CYAN
-                space = " " * (90 - self.f_length(npc["名字"]) - 8)
-                self.f_printFS(f'{npc["名字"]}{space}{lock}')
+            # 打印NPC列表
+            for i in range(0, len(all_npc), 2):
+                if 0 <= i < len(all_npc):  # 第奇数个元素
+                    self.f_printNPCBasic(all_npc, i)
+                if 0 <= i+1 < len(all_npc):  # 第偶数个元素
+                    self.f_printNPCBasic(all_npc, i+1)
+                print()
             self.f_printCaozuo()
-            self.f_printCenter("查看图鉴：输入名字    返回主菜单：0")
+            self.f_printCenter("查看图鉴：输入编号    返回主菜单：0")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
-            choice = input(f"{FIVE_SPACE}输入选择: ")
-            if choice == "0":
-                break
-            else:
-                find = False
-                self.f_clearScreen()
-                self.f_printTitle("NPC图鉴")
-                for npc in all_npc:
-                    if npc["名字"] == choice:
-                        find = True
-                        self.f_printCenter(npc["名字"])
-                        print()
-                        self.f_fontColor(Fore.CYAN)
-                        if npc["故事"]["解锁"]:
-                            self.f_printLongText(npc["故事"]["文本"])
-                        else:
-                            self.f_printCenter("[未解锁]")
-                        self.f_fontColor(Fore.YELLOW)
-                        self.f_printTitle()
-                        input(f'{FIVE_SPACE}按下回车返回...')
-                        break
-                if not find:
-                    print("\n\n\n")
-                    self.f_fontColor(Fore.CYAN)
-                    self.f_printCenter("NPC名字不存在")
-                    self.f_fontColor(Fore.YELLOW)
-                    print("\n\n\n")
-                    self.f_printTitle()
-                    input(f'{FIVE_SPACE}按下回车返回...')
+            try:
+                choice = int(input(f"{FIVE_SPACE}输入选择: "))
+                print()
+                if choice == 0:
+                    break
+                else:
+                    # 判断输入的编号是否合法
+                    if 0 <= choice-1 < len(all_npc):
+                        self.page_NPCInfo(all_npc[choice-1])
+                    else:
+                        input("编号不存在!！按下回车继续...")
+            except Exception:
+                input("输入错误！按下回车继续...")
+
+    # NPC详细属性界面
+    def page_NPCInfo(self, npc_info: dict):
+        SOUNDS["翻页"].play()
+        self.f_clearScreen()
+        self.f_printTitle("NPC信息")
+        self.f_printCenter(npc_info["名字"])
+        self.f_fontColor(Fore.CYAN)
+        if npc_info["故事"]["解锁"]:
+            print()
+            jiu = ""
+            for j in npc_info["需求酒类"]:
+                jiu += (j + "，")
+            self.f_printFS(f'需求酒类：{jiu[:-1]}')
+            self.f_printFS(f'需求数量：{npc_info["需求数量"][0]}杯 或 {npc_info["需求数量"][0]}杯')
+            self.f_printFS(f'声望增加：{npc_info["声望增加"]}')
+            self.f_printFS(f'小费概率：{npc_info["小费"]["概率"]}%')
+            self.f_printFS(f'小费金额：{npc_info["小费"]["金额"]["min"]}-{npc_info["小费"]["金额"]["min"]}枚金币')
+            self.f_printFS("人生故事：")
+            print(" "*4, end="")
+            self.f_printLongText(npc_info["故事"]["文本"])
+        else:
+            print("\n\n\n")
+            self.f_printCenter("[NPC未解锁]")
+            print("\n\n\n")
+        self.f_fontColor(Fore.YELLOW)
+        self.f_printTitle()
+        input(f"{FIVE_SPACE}按下回车返回...")
 
 class GameData:
     def init(self, data):
