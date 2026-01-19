@@ -483,11 +483,11 @@ class GamePage(GameFuncs):
             self.f_printCenter("今日操作")
             print()
             self.f_printFS("1. 酿酒工坊（麦酒/蜜酒/果酒）")
-            self.f_printFS("2. 采购原料（市集采购/走私商高价急购/酿酒秘方）")
+            self.f_printFS("2. 采购原料（市集采购/走私商高价急购/其它物品）")
             self.f_printFS("3. 开门营业（接待客人，赚取金币+声望）")
             self.f_printFS("4. 修缮酒馆（消耗金币，提升耐久）")
-            self.f_printFS("5. 查看账本（销量/利润/债务）")
-            self.f_printFS("6. 结束今日")
+            self.f_printFS("6. 查看账本（销量/利润/债务）")
+            self.f_printFS("7. 结束今日（什么都不做，跳过今日）")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             self.f_printFS("-1. 保存")
@@ -656,7 +656,7 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.CYAN)
             self.f_printFS("- 市集采购：1.麦芽=0.2金币 2.蜂蜜=0.33金币 3.浆果=0.50金币 4.木材=0.25金币")
             self.f_printFS("- 走私商人：5.麦芽=0.3金币 6.蜂蜜=0.50金币 7.浆果=0.75金币 8.木材=0.35金币")
-            self.f_printFS("- 其他物品：9.酿酒秘方（提升10%成功率）=20金币")
+            self.f_printFS("- 其他物品：9.酿酒秘方(提升10%成功率)=20金币 10.麦酒1桶=1.5金币")
             print()
             self.f_printCaozuo()
             self.f_printCenter("离开采购集市: 0")
@@ -687,14 +687,23 @@ class GamePage(GameFuncs):
                         self.f_buyFromSmuggler("浆果", 0.75, num)
                     elif choice == 8:  # 走私木材
                         self.f_buyFromSmuggler("木材", 0.35, num)
-                elif choice in [9]:  # 购买其他物品
+                elif choice in [9,10]:  # 购买其他物品
                     if choice == 9:  # 酿酒秘方
                         if getGameData().jinbi >= 20:
                             self.f_change_jinbi(-20)
                             self.f_change_niangjiu(10)
+                            self.f_change_today_shouru(-20)
                             input(f"{FIVE_SPACE}酿酒秘方（提高10%成功率）购买成功...")
                         else:
                             input(f"{FIVE_SPACE}酿酒秘方购买失败，金币不够...")
+                    elif choice == 10:  # 麦酒
+                        if getGameData().jinbi >= 10:
+                            self.f_change_jinbi(-10)
+                            self.f_change_today_shouru(-10)
+                            self.f_change_kucun("麦酒", 1)
+                            input(f"{FIVE_SPACE}麦酒 x 1桶，购买成功...")
+                        else:
+                            input(f'{FIVE_SPACE}麦酒购买失败，金币不够...')
             except Exception:
                 self.f_printFS("输入有误!")
                 self.f_sleep()
@@ -716,7 +725,7 @@ class GamePage(GameFuncs):
             self.f_printStock()
             print()
             # 提示
-            self.f_printCenter("客流量和消费额受声望、酒馆耐久影响。单位：1杯=0.25桶")
+            self.f_printCenter("客流量和消费额受声望、酒馆耐久影响。单位：1桶=4杯")
             print()
             # 客人
             self.f_fontColor(Fore.CYAN)
@@ -834,9 +843,10 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.CYAN)
             self.f_printFS("- 简易修补：- 1 枚金币  耐久 + 2")
             self.f_printFS("- 更换木桌：- 3 枚金币  耐久 + 4  声望 + 1")
+            self.f_printFS("- 重新装修：-10 枚金币  耐久 + 10 声望 + 5")
             print()
             self.f_printCaozuo()
-            self.f_printCenter("1.简易修补 2.更换木桌 0.结束修缮")
+            self.f_printCenter("1.简易修补  2.更换木桌  3.重新装修  0.结束修缮")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             choice = input(f'{FIVE_SPACE}输入选项: ')
@@ -848,7 +858,7 @@ class GamePage(GameFuncs):
                     self.f_change_naijiu(2)
                     self.f_change_today_shouru(-1)
                     self.f_change_today_naijiu(2)
-                    input(f'{FIVE_SPACE}简易修补完成，酒馆耐久 +2')
+                    input(f'{FIVE_SPACE}简易修补完成，酒馆耐久 + 2')
                 # 金币不够
                 else:
                     input(f'{FIVE_SPACE}简易修补失败，金币不够')
@@ -861,10 +871,21 @@ class GamePage(GameFuncs):
                     self.f_change_today_shouru(-3)
                     self.f_change_today_naijiu(4)
                     self.f_change_today_shengwang(1)
-                    input(f'{FIVE_SPACE}更换木桌完成，酒馆耐久 +4，酒馆声望 +1')
+                    input(f'{FIVE_SPACE}更换木桌完成，酒馆耐久 + 4  酒馆声望 + 1')
                 # 金币不够
                 else:
                     input(f'{FIVE_SPACE}更换木桌失败，金币不够')
+            elif choice == "3":
+                if gameData.jinbi >= 10:
+                    self.f_change_jinbi(-10)
+                    self.f_change_naijiu(10)
+                    self.f_change_shengwang(5)
+                    self.f_change_today_shouru(-10)
+                    self.f_change_today_naijiu(10)
+                    self.f_change_today_shengwang(5)
+                    input(f'{FIVE_SPACE}重新装修完成，酒馆耐久 + 10  酒馆声望 + 10')
+                else:
+                    input(f'{FIVE_SPACE}重新装修失败，金币不够')
             elif choice == "0":
                 input(f'{FIVE_SPACE}已结束酒馆修缮')
                 break
