@@ -331,20 +331,22 @@ class GameFuncs:
             if getGameData().jinbi >= other_item[key]:
                 self.f_change_jinbi(-other_item[key])
                 self.f_change_today_shouru(-other_item[key])
+                del other_item[key]
                 if key == "9.酿酒秘方(+10%酿酒技巧)":
                     self.f_change_niangjiu(10)
+                    input(f"\n{FIVE_SPACE}{key[2:]}购买成功...")
+                    return
                 elif key == "10.麦酒":
                     self.f_change_kucun("麦酒", 1)
                 elif key == "11.蜜酒":
                     self.f_change_kucun("蜜酒", 1)
                 elif key == "12.果酒":
                     self.f_change_kucun("果酒", 1)
-                del other_item[key]
-                input(f"\n{FIVE_SPACE}{key}购买成功...")
+                input(f"\n{FIVE_SPACE}{key[3:]}购买成功...")
             else:
-                input(f"\n{FIVE_SPACE}{key}购买失败，金币不够...")
+                input(f"\n{FIVE_SPACE}购买失败，金币不够...")
         else:
-            input(f"\n{FIVE_SPACE}{key}购买失败，今日已售完...")
+            input(f"\n{FIVE_SPACE}购买失败，今日已售完...")
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
@@ -1265,17 +1267,12 @@ class GamePage(GameFuncs):
     # 进入具体操作界面之前的提示界面
     def page_hint(self, title, tips):
         t = random.choice(tips)
-        for i in range(4):
-            self.f_clearScreen()
-            self.f_printTitle(str(title))
-            print("\n\n\n")
-            if i != 3:
-                self.f_printCenter(str(t) + "."*(i+1))
-            else:
-                self.f_printCenter(str(t))
-            print("\n\n\n")
-            self.f_printTitle()
-            self.f_sleep(0.3)
+        self.f_clearScreen()
+        self.f_printTitle(str(title))
+        print("\n\n\n")
+        self.f_printCenter(str(t))
+        print("\n\n\n")
+        self.f_printTitle()
         input(f'{FIVE_SPACE}按下回车继续...')
 
 class GameData:
