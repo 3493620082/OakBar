@@ -516,8 +516,8 @@ class GamePage(GameFuncs):
             self.f_printFS("2. 采购原料（市集采购/走私商高价急购/其它物品）")
             self.f_printFS("3. 开门营业（接待客人，赚取金币+声望）")
             self.f_printFS("4. 修缮酒馆（消耗金币，提升耐久）")
-            self.f_printFS("6. 查看账本（销量/利润/债务）")
-            self.f_printFS("7. 结束今日（什么都不做，跳过今日）")
+            self.f_printFS("5. 查看账本（销量/利润/债务）")
+            self.f_printFS("6. 结束今日（什么都不做，跳过今日）")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             self.f_printFS("-1. 保存")
@@ -533,28 +533,31 @@ class GamePage(GameFuncs):
                 break
             elif choice in ["1","2","3","4","5","6"]:
                 SOUNDS["翻页"].play()
-                if choice == "1":
-                    self.f_change_shengwang(-0.2)
-                    self.f_change_today_shengwang(-0.2)
+                if choice == "1":  # 酿酒
+                    self.page_hint("奥克的酿酒工坊", PAGE_TIPS["酿酒"])
                     self.page_brew()
-                elif choice == "2":
-                    self.f_change_shengwang(-0.2)
-                    self.f_change_today_shengwang(-0.2)
+                elif choice == "2":  # 采购
+                    self.page_hint("采购原料", PAGE_TIPS["采购"])
                     self.page_buyResource()
-                elif choice == "3":
+                elif choice == "3":  # 营业
+                    self.page_hint("奥克的酒馆营业中", PAGE_TIPS["营业"])
                     self.page_open()
-                elif choice == "4":
-                    self.f_change_shengwang(-0.2)
-                    self.f_change_today_shengwang(-0.2)
+                elif choice == "4":  # 修缮酒吧
+                    self.page_hint("修缮奥克的酒馆", PAGE_TIPS["修缮"])
                     self.page_fixBar()
                 elif choice == "5":  # 账本
+                    self.page_hint("奥克的酒馆账本", PAGE_TIPS["账本"])
                     self.page_ledger()
                 elif choice == "6":  # 结束今日
+                    if self.f_confirm("你确定什么都不做结束今日吗?", "结束今日..."):
+                        self.page_hint("奥克的酒馆", PAGE_TIPS["结束"])
+                # 不开门则扣除声望
+                if choice in ["1","2","4","6"]:
                     self.f_change_shengwang(-0.2)
                     self.f_change_today_shengwang(-0.2)
-                # 结束今日->营业结果->随机事件
                 # 酿酒、采购、营业、修缮和结束今日 这5个选项都会触发结算函数
                 if choice in ["1","2","3","4","6"]:
+                    # 结束今日->营业结果->随机事件
                     SOUNDS["翻页"].play()
                     # 今日已完成界面
                     self.page_wancheng()
@@ -598,7 +601,8 @@ class GamePage(GameFuncs):
             print()
             choice = input(f"{FIVE_SPACE}输入选项: ")
             if choice == "0":
-                break
+                if self.f_confirm("确定要离开酿酒工坊吗?", "已离开酿酒工坊..."):
+                    break
             elif choice in ["1","2","3"]:
                 success = self.f_chance(gameData.niangjiu)
                 # 材料
@@ -923,8 +927,8 @@ class GamePage(GameFuncs):
                 else:
                     input(f'{FIVE_SPACE}重新装修失败，金币不够')
             elif choice == "0":
-                input(f'{FIVE_SPACE}已结束酒馆修缮')
-                break
+                if self.f_confirm("确定要结束酒馆修缮吗?", "已结束酒馆修缮..."):
+                    break
         SOUNDS["修缮酒馆"].stop()
 
     # 查看账本界面
@@ -1257,6 +1261,22 @@ class GamePage(GameFuncs):
         self.f_fontColor(Fore.YELLOW)
         self.f_printTitle()
         input(f"{FIVE_SPACE}按下回车返回...")
+
+    # 进入具体操作界面之前的提示界面
+    def page_hint(self, title, tips):
+        t = random.choice(tips)
+        for i in range(4):
+            self.f_clearScreen()
+            self.f_printTitle(str(title))
+            print("\n\n\n")
+            if i != 3:
+                self.f_printCenter(str(t) + "."*(i+1))
+            else:
+                self.f_printCenter(str(t))
+            print("\n\n\n")
+            self.f_printTitle()
+            self.f_sleep(0.3)
+        input(f'{FIVE_SPACE}按下回车继续...')
 
 class GameData:
     def init(self, data):
