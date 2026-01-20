@@ -1232,7 +1232,7 @@ class GamePage(GameFuncs):
                     if 0 <= choice-1 < len(all_npc):
                         self.page_NPCInfo(all_npc[choice-1])
                     else:
-                        input("编号不存在!！按下回车继续...")
+                        input("编号不存在！按下回车继续...")
             except Exception:
                 input("输入错误！按下回车继续...")
 
