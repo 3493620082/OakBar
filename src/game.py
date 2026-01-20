@@ -316,6 +316,36 @@ class GameFuncs:
         today["声望"] = 0.0
         today["耐久"] = 0.0
 
+    def f_buyOtherItem(self, other_item, key):
+        """
+        只记得是给集市上的其他物品购买时调用的购买函数
+        先判断物品是否在other_item中，不在说明今日已经卖完
+        再判断钱包够不够买这个物品，物品的价格是这个物品的键值对的值
+        都够的话先减钱，减今日收入，再具体判断是哪个物品
+        因为不同的物品的规则不一样，秘方+10%酿酒技巧，其它酒需要加库存
+        :param other_item: 其他物品每日限购字典，购买完一次直接删除该键值对
+        :param key: 物品的名字
+        :return: 无
+        """
+        if key in other_item:
+            if getGameData().jinbi >= other_item[key]:
+                self.f_change_jinbi(-other_item[key])
+                self.f_change_today_shouru(-other_item[key])
+                if key == "9.酿酒秘方(+10%酿酒技巧)":
+                    self.f_change_niangjiu(10)
+                elif key == "10.麦酒":
+                    self.f_change_kucun("麦酒", 1)
+                elif key == "11.蜜酒":
+                    self.f_change_kucun("蜜酒", 1)
+                elif key == "12.果酒":
+                    self.f_change_kucun("果酒", 1)
+                del other_item[key]
+                input(f"\n{FIVE_SPACE}{key}购买成功...")
+            else:
+                input(f"\n{FIVE_SPACE}{key}购买失败，金币不够...")
+        else:
+            input(f"\n{FIVE_SPACE}{key}购买失败，今日已售完...")
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -552,6 +582,7 @@ class GamePage(GameFuncs):
             self.f_printStock()
             print()
             self.f_printCenter("不同酒品需不同原料，成功率受「酿酒技巧」影响")
+            self.f_printFS("每次酿酒成功「酿酒技巧」+1%")
             print()
             self.f_fontColor(Fore.CYAN)
             self.f_printFS("- 麦酒: 3 麦芽 = 1 桶（成本低，大众款）")
@@ -581,6 +612,7 @@ class GamePage(GameFuncs):
                             print(Fore.GREEN)  # 空行
                             self.f_printFS("酿酒成功！消耗 3 麦芽，麦酒 + 1 桶")
                             print(Fore.YELLOW)
+                            self.f_change_niangjiu(1)
                             input(f"{FIVE_SPACE}回车继续...")
                         else:
                             print(Fore.RED)
@@ -599,6 +631,7 @@ class GamePage(GameFuncs):
                             print(Fore.GREEN)
                             self.f_printFS("酿酒成功！消耗 2 蜂蜜 1 麦芽，蜜酒 + 1 桶")
                             print(Fore.YELLOW)
+                            self.f_change_niangjiu(1)
                             input(f"{FIVE_SPACE}回车继续...")
                         else:
                             print(Fore.RED)
@@ -616,6 +649,7 @@ class GamePage(GameFuncs):
                             print(Fore.GREEN)
                             self.f_printFS("酿酒成功！消耗 2 浆果 1 麦芽，果酒 + 1 桶")
                             print(Fore.YELLOW)
+                            self.f_change_niangjiu(1)
                             input(f"{FIVE_SPACE}回车继续...")
                         else:
                             print(Fore.RED)
@@ -637,6 +671,8 @@ class GamePage(GameFuncs):
             "浆果": 20,
             "木材": 20
         }
+        # 其他物品的刷新（30%几率）
+        other_item = {"9.酿酒秘方(+10%酿酒技巧)":20, "10.麦酒":1.5, "11.蜜酒":2, "12.果酒":3.5}
         SOUNDS["采购原料"].play(-1)
         while True:
             self.f_clearScreen()
@@ -647,6 +683,7 @@ class GamePage(GameFuncs):
             print()
             self.f_printCenter("集市采购价格稳定，但每天原料数量有限")
             self.f_printCenter("走私商人价格约贵50%，但是数量不限")
+            self.f_printCenter("其它物品每日仅限购1份")
             print()
             text = "限购: "
             for k, v in limit.items():
@@ -656,7 +693,13 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.CYAN)
             self.f_printFS("- 市集采购：1.麦芽=0.2金币 2.蜂蜜=0.33金币 3.浆果=0.50金币 4.木材=0.25金币")
             self.f_printFS("- 走私商人：5.麦芽=0.3金币 6.蜂蜜=0.50金币 7.浆果=0.75金币 8.木材=0.35金币")
-            self.f_printFS("- 其他物品：9.酿酒秘方(提升10%成功率)=20金币 10.麦酒1桶=1.5金币")
+            print(f"{FIVE_SPACE}- 其他物品：", end="")
+            if other_item:
+                for k, v in other_item.items():
+                    print(f"{k}={v}金币 ", end="")
+                print()
+            else:
+                print("其它物品已售光...")
             print()
             self.f_printCaozuo()
             self.f_printCenter("离开采购集市: 0")
@@ -666,7 +709,8 @@ class GamePage(GameFuncs):
             try:
                 choice = int(input(f"{FIVE_SPACE}输入选项: "))
                 if choice == 0:
-                    break
+                    if self.f_confirm("确定要离开采购集市吗?", "已离开采购集市..."):
+                        break
                 elif choice in [1,2,3,4]:  # 集市交易
                     num = int(input(f"{FIVE_SPACE}输入数量: "))
                     if choice == 1:  # 集市麦芽
@@ -687,23 +731,15 @@ class GamePage(GameFuncs):
                         self.f_buyFromSmuggler("浆果", 0.75, num)
                     elif choice == 8:  # 走私木材
                         self.f_buyFromSmuggler("木材", 0.35, num)
-                elif choice in [9,10]:  # 购买其他物品
+                elif (choice in [9,10,11,12]) and other_item:  # 购买其他物品
                     if choice == 9:  # 酿酒秘方
-                        if getGameData().jinbi >= 20:
-                            self.f_change_jinbi(-20)
-                            self.f_change_niangjiu(10)
-                            self.f_change_today_shouru(-20)
-                            input(f"{FIVE_SPACE}酿酒秘方（提高10%成功率）购买成功...")
-                        else:
-                            input(f"{FIVE_SPACE}酿酒秘方购买失败，金币不够...")
+                        self.f_buyOtherItem(other_item, "9.酿酒秘方(+10%酿酒技巧)")
                     elif choice == 10:  # 麦酒
-                        if getGameData().jinbi >= 10:
-                            self.f_change_jinbi(-10)
-                            self.f_change_today_shouru(-10)
-                            self.f_change_kucun("麦酒", 1)
-                            input(f"{FIVE_SPACE}麦酒 x 1桶，购买成功...")
-                        else:
-                            input(f'{FIVE_SPACE}麦酒购买失败，金币不够...')
+                        self.f_buyOtherItem(other_item, "10.麦酒")
+                    elif choice == 11:  # 蜜酒
+                        self.f_buyOtherItem(other_item, "11.蜜酒")
+                    elif choice == 12:  # 果酒
+                        self.f_buyOtherItem(other_item, "12.果酒")
             except Exception:
                 self.f_printFS("输入有误!")
                 self.f_sleep()
