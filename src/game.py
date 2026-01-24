@@ -140,6 +140,11 @@ class GameFuncs:
             temp.extend(NPCS["中级"])
             temp.extend(NPCS["高级"])
             temp.extend(NPCS["稀有"])
+        # 如果季节是夏季或冬季的话，需求酒量翻2倍
+        if getGameData().getSeason() == "夏季" or getGameData().getSeason() == "冬季":
+            for c in temp:
+                c["需求数量"][0] *= 2
+                c["需求数量"][1] *= 2
         return random.choices(temp, k=num)
 
     def f_printLongText(self, text):
@@ -520,6 +525,7 @@ class GamePage(GameFuncs):
             self.f_printFS("4. 修缮酒馆（消耗金币，提升耐久）")
             self.f_printFS("5. 查看账本（销量/利润/债务）")
             self.f_printFS("6. 结束今日（什么都不做，跳过今日）")
+            self.f_printFS("7. 玩法说明（查看文档，熟悉游戏机制）")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
             self.f_printFS("-1. 保存")
@@ -533,7 +539,7 @@ class GamePage(GameFuncs):
             elif choice == "-2":
                 gameData.save()
                 break
-            elif choice in ["1","2","3","4","5","6"]:
+            elif choice in ["1","2","3","4","5","6","7"]:
                 SOUNDS["翻页"].play()
                 if choice == "1":  # 酿酒
                     self.page_hint("奥克的酿酒工坊", PAGE_TIPS["酿酒"])
@@ -553,6 +559,8 @@ class GamePage(GameFuncs):
                 elif choice == "6":  # 结束今日
                     if self.f_confirm("你确定什么都不做结束今日吗?", "结束今日..."):
                         self.page_hint("奥克的酒馆", PAGE_TIPS["结束"])
+                elif choice == "7":  # 查看玩法说明
+                    self.page_doc()
                 # 不开门则扣除声望
                 if choice in ["1","2","4","6"]:
                     self.f_change_shengwang(-0.2)
@@ -1274,6 +1282,10 @@ class GamePage(GameFuncs):
         print("\n\n\n")
         self.f_printTitle()
         input(f'{FIVE_SPACE}按下回车继续...')
+
+    # 玩法说明页
+    def page_doc(self):
+        pass
 
 class GameData:
     def init(self, data):
