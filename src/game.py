@@ -767,7 +767,7 @@ class GamePage(GameFuncs):
             self.f_printStock()
             print()
             # 提示
-            self.f_printCenter("客流量和消费额受声望、酒馆耐久影响。单位：1桶=4杯")
+            self.f_printCenter("客流量和消费额受声望、酒馆耐久影响。单位：1桶=5杯")
             print()
             # 客人
             self.f_fontColor(Fore.CYAN)
