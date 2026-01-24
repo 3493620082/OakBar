@@ -808,7 +808,7 @@ class GamePage(GameFuncs):
                         self.f_change_kucun(cst_need["酒类"], -(cst_need["数量"] * 0.2))
                         self.f_change_jinbi(cst_need["消费"])
                         tip = 0  # 小费
-                        if self.f_chance(cst["小费"]["概率"]):tip += random.randint(cst["小费"]["金额"]["min"], cst["小费"]["金额"]["max"])
+                        if self.f_chance(cst["小费"]["概率"]):tip += random.uniform(cst["小费"]["金额"]["min"], cst["小费"]["金额"]["max"])
                         self.f_change_jinbi(tip)
                         self.f_change_shengwang(cst["声望增加"])
                         # 账本数据：增加销量、增加利润
