@@ -41,7 +41,7 @@ class GameFuncs:
         print(" "*num + text)
 
     def f_createSaveFile(self):
-        with open("save\\_temp.json", 'r', encoding="utf-8") as f:
+        with open("src\\_temp.json", 'r', encoding="utf-8") as f:
             _temp = json.load(f)
         now = datetime.datetime.now()
         file_name = now.strftime("%Y-%m-%d %H-%M-%S")  # 文件名
@@ -443,7 +443,6 @@ class GamePage(GameFuncs):
             self.f_clearScreen()
             self.f_printTitle("选择存档")
             files = os.listdir("save\\")
-            files.remove("_temp.json")
             # 取出掉列表中所有文件名的.json后缀
             files = list(map(lambda file_name: file_name.replace(".json", ""), files))
             for i in range(len(files)):
@@ -471,7 +470,6 @@ class GamePage(GameFuncs):
             self.f_clearScreen()
             self.f_printTitle("删除存档")
             files = os.listdir("save\\")
-            files.remove("_temp.json")
             # 取出掉列表中所有文件名的.json后缀
             files = list(map(lambda file_name: file_name.replace(".json", ""), files))
             for i in range(len(files)):
