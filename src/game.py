@@ -10,6 +10,18 @@ import os
 from src.const import *
 
 class GameFuncs:
+    def onCreate(self) -> None:
+        """
+        游戏启动
+        调用方：main.py
+        """
+        # 背景音乐
+        self.f_initBackgroundMusic()
+        # 音效
+        self.f_initSounds()
+        # 开始游戏
+        self.page_mainMenu()
+
     def f_clearScreen(self):
         os.system("cls")
 
@@ -392,10 +404,64 @@ class GameFuncs:
         return basic_price
 
     def f_brewingFailed(self, message):
+        """
+        酿酒失败打印提示文本
+        :param message: 提示文本
+        :return: 无
+        """
         print(Fore.RED)
         self.f_printFS(message)
         print(Fore.YELLOW)
         input(f"{FIVE_SPACE}回车继续...")
+
+    def f_updateSeason(self):
+        """
+        @豆包AI生成
+        根据累计天数判断所属季节并更新季节编号
+        :return: 季节编码（1-春，2-夏，3-秋，4-冬）
+        """
+        total_days = getGameData().tianshu
+        # 步骤1：处理超过一年的天数，直接取余365（注意余数为0时代表365天）
+        if total_days > 365:
+            total_days = total_days % 365
+            # 取余后如果为0，说明正好是365天（12月），修正为365
+            if total_days == 0:
+                total_days = 365
+        # 定义1-12月的天数（一三五七八十腊31天，2月28天，其余30天）
+        month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        remaining_days = total_days
+        month = 0  # 初始化月份
+        season_id = 0
+        # 步骤2：找到天数所属的月份
+        for days in month_days:
+            month += 1
+            if remaining_days <= days:
+                break
+            remaining_days -= days
+        # 步骤3：根据月份判断季节并返回编码
+        if 1 <= month <= 3:
+            season_id = 1  # 春季
+        elif 4 <= month <= 6:
+            season_id = 2  # 夏季
+        elif 7 <= month <= 9:
+            season_id = 3  # 秋季
+        else:  # 10-12月
+            season_id = 4  # 冬季
+        # 步骤4：修改季节
+        getGameData().jijie = season_id
+
+    def f_pressEnter(self):
+        input(f"{FS}按下回车继续...")
+
+    def f_unlockKuJiu(self):
+        getGameData().other_drink["苦酒"]["解锁"] = True
+
+    def f_initBackgroundMusic(self):
+        mixer.init()
+        # 音乐
+        mixer.music.load("media\\background.ogg")
+        mixer.music.set_volume(CONFIG["music_vol"])
+        mixer.music.play(-1)
 
 class GamePage(GameFuncs):
     def page_mainMenu(self):
@@ -1087,8 +1153,8 @@ class GamePage(GameFuncs):
         发生随机事件
         正面事件：
             商队路过，高价收购 10 桶麦酒（收入 10 枚，声望 + 5）
-            隐士赠送稀有酿酒配方（提升酿酒成功率 10%）
-            神秘老者收购所有桶装苦酒（一桶5金币）
+            隐士赠送稀有酿酒秘方（提升酿酒成功率 10%）
+            神秘老者购买苦酒，然后使用魔法维修酒馆（一桶5金币，耐久 + 10）
             世外高人（解锁苦酒）
         负面事件：
             领主收税，需缴纳 2 枚金币（不交则声望 - 10）
@@ -1132,37 +1198,49 @@ class GamePage(GameFuncs):
                             input(f'{FIVE_SPACE}你拒绝了交易，按下回车继续...')
                             break
                 elif event == "隐士":
-                    self.f_clearScreen()
-                    self.f_printTitle("随机事件")
-                    print("\n\n\n")
-                    self.f_printCenter("一个不知从哪里来的隐士，进来讨了一杯水喝，走后留下了一份稀有的酿酒配方")
-                    self.f_printCenter("（提升酿酒成功率 10%）")
-                    self.f_change_niangjiu(10)
-                    print("\n\n\n")
-                    self.f_printTitle()
-                    input(f'{FIVE_SPACE}按下回车继续...')
+                    while True:
+                        self.f_clearScreen()
+                        self.f_printTitle("随机事件")
+                        print("\n\n\n")
+                        self.f_printCenter("一个不知从哪里来的隐士，进来想要讨一杯水喝，他答应给你一份稀有的酿酒秘方")
+                        self.f_printCenter("（提升酿酒成功率 10%）")
+                        print("\n\n\n")
+                        self.f_printCenter("1.接收 2.拒绝")
+                        self.f_printTitle()
+                        choice = input(f'{FS}输入选项: ')
+                        if choice == "1":
+                            self.f_printFS("你给隐士提供了一杯水，他给你留下了一份酿酒秘方")
+                            self.f_printFS("酿酒成功率 + 10%\n")
+                            self.f_change_niangjiu(10)
+                            self.f_pressEnter()
+                            break
+                        elif choice == "2":
+                            self.f_printFS("你拒绝给隐士提供水，他什么都没说，默默的离开了\n")
+                            self.f_pressEnter()
+                            break
                 elif event == "苦酒":
                     while True:
                         self.f_clearScreen()
                         self.f_printTitle("随机事件")
                         print("\n\n\n")
-                        self.f_printCenter("神秘老者收购所有苦酒")
-                        self.f_printCenter("（一桶5金币）")
+                        self.f_printCenter("神秘老者想要买走所有苦酒，他许诺你卖给他后，他会使用魔法帮你修补酒馆")
+                        self.f_printCenter("（一桶5金币，酒馆耐久 + 10）")
                         print("\n\n\n")
-                        self.f_printCenter("1. 接收 2.拒绝")
+                        self.f_printCenter("1.接收 2.拒绝")
                         self.f_printTitle()
                         choice = input(f'{FIVE_SPACE}输入选项: ')
                         print()
                         if choice == "1":
                             # 数量足够
                             if getGameData().other_drink["苦酒"]["库存"] >= 1:
-                                # 收购所有桶
+                                # 购买所有桶
                                 total_price = getGameData().other_drink["苦酒"]["库存"] * 5
                                 self.f_change_jinbi(total_price)
+                                self.f_change_naijiu(10)
                                 self.f_change_zhangben_lirun(total_price)
                                 self.f_change_zhangben_xiaoliang("苦酒", getGameData().other_drink["苦酒"]["库存"])
                                 getGameData().other_drink["苦酒"]["库存"] = 0
-                                input(f'{FIVE_SPACE}交易成功！金币 +{total_price}')
+                                input(f'{FIVE_SPACE}交易成功！金币 + {total_price}！耐久 + 10！')
                                 break
                             # 数量不够
                             else:
@@ -1172,8 +1250,31 @@ class GamePage(GameFuncs):
                             input(f'{FIVE_SPACE}你拒绝了交易，按下回车继续...')
                             break
                 elif event == "高人":
-                    # TODO: 世外高人（解锁苦酒）
-                    pass
+                    while True:
+                        self.f_clearScreen()
+                        self.f_printTitle("随机事件")
+                        print("\n\n\n")
+                        self.f_printCenter("门外出现了一个神秘人，他自称世外高人，他说你只需要给他5金币")
+                        self.f_printCenter("他就能教你如何使用木材酿酒")
+                        self.f_printCenter("（解锁苦酒配方）")
+                        print("\n\n\n")
+                        self.f_printCenter("1.交易 2.拒绝")
+                        self.f_printTitle()
+                        choice = input(f"{FS}输入选项: ")
+                        if choice == "1":
+                            if getGameData().jinbi >= 5:
+                                self.f_printFS("你接受了世外高人的交易，金币 - 5")
+                                self.f_printFS("解锁 苦酒 酿造\n")
+                                self.f_unlockKuJiu()
+                                self.f_pressEnter()
+                            else:
+                                self.f_printFS("你的金币不够，交易失败\n")
+                                self.f_pressEnter()
+                            break
+                        elif choice == "2":
+                            self.f_printFS("你拒绝了世外高人的交易\n")
+                            self.f_pressEnter()
+                            break
             # 负面事件
             else:
                 event = random.choice(["领主","鼠患","闹事"])
@@ -1257,7 +1358,7 @@ class GamePage(GameFuncs):
             self.f_printCenter("今晚是个宁静的夜晚，没有任何事件发生...")
             print("\n\n\n")
             self.f_printTitle()
-            input(f'{FIVE_SPACE}按下回车继续...')
+            self.f_pressEnter()
 
     # 还债界面
     def page_repayDebt(self):
@@ -1284,8 +1385,11 @@ class GamePage(GameFuncs):
     def page_endToday(self):
         # 天数+1
         getGameData().tianshu += 1
+        # 更新季节
+        self.f_updateSeason()
         # 保存游戏数据
         getGameData().save()
+        # 播放动画
         for i in range(3):
             self.f_clearScreen()
             self.f_printTitle(CONFIG["game_name"])
