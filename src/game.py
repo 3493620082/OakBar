@@ -84,7 +84,9 @@ class GameFuncs:
                 text += f"{k}{getGameData().kucun[k]} / "
             else:
                 text += f"{k}{getGameData().kucun[k]}桶 / "
-        text = text[:-3]  # 去掉最后一个"/"符号
+        text = text[:-2]  # 去掉最后一个"/"符号
+        # 苦酒
+        text += f"苦酒{getGameData().other_drink['苦酒']['库存']}"
         self.f_printCenter(text)
 
     def f_buyFromMarket(self, limit, name, price, num):
@@ -627,7 +629,7 @@ class GamePage(GameFuncs):
             self.f_fontColor(Fore.CYAN)
             self.f_printCenter("今日操作")
             print()
-            self.f_printFS("1. 酿酒工坊（麦酒/蜜酒/果酒）")
+            self.f_printFS("1. 酿酒工坊（麦酒/蜜酒/果酒/苦酒等）")
             self.f_printFS("2. 采购原料（市集采购/走私商高价急购/其它物品）")
             self.f_printFS("3. 开门营业（接待客人，赚取金币+声望）")
             self.f_printFS("4. 修缮酒馆（消耗金币，提升耐久）")
@@ -703,7 +705,7 @@ class GamePage(GameFuncs):
             self.f_printStock()
             print()
             self.f_printCenter("不同酒品需不同原料，成功率受「酿酒技巧」影响")
-            self.f_printFS("每次酿酒成功「酿酒技巧」+1%")
+            self.f_printCenter("每次酿酒成功「酿酒技巧」+1%")
             print()
             self.f_fontColor(Fore.CYAN)
             self.f_printFS("- 麦酒: 3 麦芽 = 1 桶（成本低，大众款）")
@@ -714,7 +716,7 @@ class GamePage(GameFuncs):
             print()
             self.f_printFS(f"酿酒技巧: {gameData.niangjiu}%\n")
             self.f_printCaozuo()
-            self.f_printCenter("选择酿酒类型: 1.麦酒 2.蜜酒 3.果酒")
+            self.f_printCenter("选择酿酒类型: 1.麦酒 2.蜜酒 3.果酒 4.苦酒")
             self.f_printCenter("离开酿造工坊: 0")
             self.f_fontColor(Fore.YELLOW)
             self.f_printTitle()
