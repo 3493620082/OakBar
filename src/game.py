@@ -465,6 +465,22 @@ class GameFuncs:
         mixer.music.set_volume(CONFIG["music_vol"])
         mixer.music.play(-1)
 
+    def f_readInstructions(self):
+        """
+        读取说明书
+        :return: 列表
+        """
+        with open("src\\instructions.json", 'r', encoding="utf-8") as f:
+            return json.load(f)
+
+    def f_splitLongText(self, text):
+        if self.f_length(text) >= 90:  # 如果文本太长处理一下
+            text_list = [text[i:i + 40] for i in range(0, self.f_length(text), 40)]
+            text_list = [item for item in text_list if item != ""]
+        else:
+            text_list = [text]
+        return text_list
+
 class GamePage(GameFuncs):
     def page_mainMenu(self):
         while True:
@@ -1498,7 +1514,44 @@ class GamePage(GameFuncs):
 
     # 玩法说明页
     def page_doc(self):
-        pass
+        # 读取说明文件并处理数据
+        instructions = self.f_readInstructions()
+        for i in range(len(instructions)):
+            _id = str(i+1) + "."
+            if len(_id) == 2:  # 等于2说明是个位数
+                _id += " "
+            instructions[i] = f"{_id}{instructions[i]}"  # 拼接编号
+            instructions[i] = self.f_splitLongText(instructions[i])  # 处理长文本
+        all_page = len(instructions) // 10 + 1  # 10条数据1页
+        now_page = 1  # 初始化当前页数
+        while True:
+            self.f_clearScreen()
+            self.f_printTitle("玩法说明")
+            start = 10 * (now_page - 1)
+            end = start + 10
+            # 切片取出当前页的数据
+            now_page_data = instructions[start:end]
+            # 打印数据
+            for data in now_page_data:
+                for line in data:
+                    self.f_printFS(line)
+            # 操作
+            self.f_fontColor(Fore.CYAN)
+            print()
+            self.f_printCaozuo()
+            self.f_printCenter(f"1.上一页    第{now_page}页/共{all_page}页    2.下一页")
+            self.f_printCenter("-1.返回")
+            self.f_fontColor(Fore.YELLOW)
+            self.f_printTitle()
+            choice = input(f"{FS}输入选项: ")
+            if choice == "1":
+                # TODO:上一页
+                pass
+            elif choice == "2":
+                # TODO:下一页
+                pass
+            elif choice == "-1":
+                break
 
 class GameData:
     def init(self, data):
